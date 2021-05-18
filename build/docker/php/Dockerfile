@@ -26,12 +26,12 @@ RUN    apk add --no-cache --upgrade --virtual ".extension-build-deps" \
         giflib gmp icu libffi libjpeg-turbo libpng libwebp libxml2 libzip \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install \
-        ffi gd gmp intl opcache pcntl pdo_mysql sockets xml zip \
+        exif ffi gd gmp intl mysqli opcache pcntl pdo_mysql sockets xml zip \
     && apk del ".extension-build-deps"
 
-RUN    apk add --no-cache --upgrade --virtual .pecl-build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && echo "extension=redis.so" > "/usr/local/etc/php/conf.d/pecl-redis.ini" \
+RUN    apk add --no-cache --upgrade --virtual .pecl-build-deps $PHPIZE_DEPS imagemagick6-dev \
+    && pecl install imagick && docker-php-ext-enable imagick \
+    && pecl install redis && docker-php-ext-enable redis \
     && apk del .pecl-build-deps
 
 # Composer (see https://github.com/composer/docker/blob/master/1.8/Dockerfile)
