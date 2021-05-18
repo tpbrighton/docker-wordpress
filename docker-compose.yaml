@@ -1,0 +1,80 @@
+version: '3.8'
+
+x-logging:
+  &default-logging
+    driver: 'json-file'
+    options:
+        max-size: '5m'
+        max-file: '1'
+
+services:
+
+    server:
+        image: 'transpridebrighton/server'
+        build:
+            context: './build/docker/server'
+            args:
+                NGINX_VERSION: '1.19.10-alpine'
+        restart: 'unless-stopped'
+        ports:
+            -   target: 80
+                published: '${WEB_PORT:-80}'
+                protocol: 'tcp'
+                mode: 'host'
+            -   target: 443
+                published: '${SSL_PORT:-443}'
+                protocol: 'tcp'
+                mode: 'host'
+        depends_on: [ 'php' ]
+        volumes:
+            -   type: 'bind'
+                source: './public'
+                target: '/srv/public'
+                read_only: true
+            -   type: 'bind'
+                source: '/etc/letsencrypt'
+                target: '/etc/letsencrypt'
+                read_only: true
+        logging: *default-logging
+
+    php:
+        image: 'transpridebrighton/php'
+        build:
+            context: './build/docker/php'
+            args:
+                PHP_VERSION: '7.4-fpm-alpine3.13'
+                COMPOSER_VERSION: '2.0.9'
+        restart: 'unless-stopped'
+        depends_on: [ 'database' ]
+        volumes:
+            -   type: 'bind'
+                source: './public'
+                target: '/srv/public'
+                read_only: false
+        logging: *default-logging
+
+    database:
+        image: 'transpridebrighton/database'
+        build:
+            context: './build/docker/database'
+            args:
+                MYSQL_VERSION: '8.0.25'
+        restart: 'unless-stopped'
+        environment:
+            MYSQL_ROOT_PASSWORD_FILE: '/run/secrets/dbpass'
+            MYSQL_DATABASE: 'transpridebrighton'
+        volumes:
+            -   type: 'bind'
+                source: '/var/run/mysql'
+                target: '/var/run/mysql'
+                read_only: false
+        secrets:
+            -   'dbpass'
+        logging: *default-logging
+
+secrets:
+    dbpass:
+        file: './.secrets/dbpass'
+volumes:
+    database:
+        driver: 'local'

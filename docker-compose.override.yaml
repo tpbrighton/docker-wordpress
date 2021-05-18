@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+
+    server:
+        volumes:
+            # Use self-generated certificates during development.
+            -   type: 'bind'
+                source: './build/ssl'
+                target: '/etc/letsencrypt'
+                read_only: true
+
+    database:
+        volumes:
+            # Use a volume for data during development instead of messing with
+            # system directories.
+            -   type: 'volume'
+                source: 'database'
+                target: '/var/run/mysql'
+                read_only: false
+
+volumes:
+    database:
+        driver: 'local'
