@@ -1,0 +1,7 @@
+/.idea/
+/.secrets/
+/build/ssl/
+/build/wordpress/
+/build/wordpress.tar.gz
+/public/
+/.env
