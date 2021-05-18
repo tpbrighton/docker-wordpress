@@ -29,19 +29,17 @@ RUN    apk add --no-cache --upgrade --virtual ".extension-build-deps" \
         exif ffi gd gmp intl mysqli opcache pcntl pdo_mysql sockets xml zip \
     && apk del ".extension-build-deps"
 
-RUN    apk add --no-cache --upgrade --virtual .pecl-build-deps $PHPIZE_DEPS imagemagick6-dev \
+RUN    apk add --no-cache --upgrade --virtual ".pecl-build-deps" $PHPIZE_DEPS imagemagick-dev \
+    && apk add --no-cache --upgrade --virtual ".pecl-runtime-deps" imagemagick \
     && pecl install imagick && docker-php-ext-enable imagick \
     && pecl install redis && docker-php-ext-enable redis \
-    && apk del .pecl-build-deps
+    && apk del ".pecl-build-deps"
 
 # Composer (see https://github.com/composer/docker/blob/master/1.8/Dockerfile)
-ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV COMPOSER_HOME="/tmp"
-ARG COMPOSER_VERSION="2.0.8"
 RUN    curl --silent --fail --location --retry 3 --output "/tmp/installer.php.hash" --url "https://composer.github.io/installer.sig" \
     && curl --silent --fail --location --retry 3 --output "/tmp/installer.php" --url "https://getcomposer.org/installer" \
     && php -r "if (hash_file('sha384', '/tmp/installer.php') === file_get_contents('/tmp/installer.php.hash')) { echo 'Installer verified.' . PHP_EOL; } else { echo 'Installer corrupt.' . PHP_EOL; unlink('/tmp/installer.php'); exit(1); }" \
-    && php "/tmp/installer.php" --no-ansi --install-dir="/sbin" --filename="composer" --version="${COMPOSER_VERSION}" \
+    && php "/tmp/installer.php" --no-ansi --install-dir="/sbin" --filename="composer" \
     && composer --no-ansi --no-interaction --version \
     && rm -f "installer.php.hash" "installer.php"
 
