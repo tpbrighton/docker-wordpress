@@ -29,17 +29,17 @@ console-setup:
 install-docker: ## Installs Docker on Ubuntu
 install-docker:
 > command -v "docker" >/dev/null 2>&1 && { echo >&2 "Docker already installed. Installation cancelled."; exit 1; } || true
-> sudo apt-get remove docker docker-engine docker.io containerd runc
-> sudo apt-get update
-> sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+> sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
+> sudo apt-get update -y
+> sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
 > curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | sudo gpg --dearmor -o "/usr/share/keyrings/docker-archive-keyring.gpg"
-> echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-> sudo apt update
-> sudo apt-get install docker-ce docker-ce-cli containerd.io
+> echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+> sudo apt update -y
+> sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 > command -v "docker-compose" >/dev/null 2>&1 && { echo ""; echo >&2 "Compose already installed. Docker installed, but Compose installation cancelled."; exit 1; } || true
 # The following command installs v1.29.0 because I can't figure out a way to detect the latest version. Check for that at:
 # https://github.com/docker/compose/releases/latest
-> export COMPOSE_VERSION="1.29.0"
+> export COMPOSE_VERSION="1.29.2"
 > sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/docker-compose
 > sudo chmod +x /usr/local/bin/docker-compose
 .PHONY: install-docker
