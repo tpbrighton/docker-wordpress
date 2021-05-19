@@ -18,10 +18,10 @@ usage:
 
 console-setup: ## Setup some nice defaults for the terminal (optional)
 console-setup:
-> ls "~/.dotfiles" >/dev/null 2>&1 && { echo "Dotfiles Repository has already been downloaded."; exit 1; } || true
-> git clone "git://github.com/zanbaldwin/dotfiles.git" "~/.dotfiles"
-> ln -s "~/.dotfiles/.bash_aliases" "~/.bash_aliases"
-> ln -s "~/.dotfiles/.bash_prompt" "~/.bash_prompt"
+> ls "$$HOME/.dotfiles" >/dev/null 2>&1 && { echo "Dotfiles Repository has already been downloaded."; exit 1; } || true
+> git clone "git://github.com/zanbaldwin/dotfiles.git" "$$HOME/.dotfiles"
+> ln -s "$$HOME/.dotfiles/.bash_aliases" "$$HOME/.bash_aliases"
+> ln -s "$$HOME/.dotfiles/.bash_prompt" "$$HOME/.bash_prompt"
 > echo ""; echo "Type the command the following command to reload the terminal: source ~/.bashrc"
 .PHONY: console-setup
 .SILENT: console-setup
@@ -33,14 +33,14 @@ install-docker:
 > sudo apt-get update
 > sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
 > curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | sudo gpg --dearmor -o "/usr/share/keyrings/docker-archive-keyring.gpg"
-> echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+> echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 > sudo apt update
 > sudo apt-get install docker-ce docker-ce-cli containerd.io
 > command -v "docker-compose" >/dev/null 2>&1 && { echo ""; echo >&2 "Compose already installed. Docker installed, but Compose installation cancelled."; exit 1; } || true
 # The following command installs v1.29.0 because I can't figure out a way to detect the latest version. Check for that at:
 # https://github.com/docker/compose/releases/latest
 > export COMPOSE_VERSION="1.29.0"
-> sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+> sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/docker-compose
 > sudo chmod +x /usr/local/bin/docker-compose
 .PHONY: install-docker
 .SILENT: install-docker
@@ -130,10 +130,10 @@ renew-certs:
 
 database-backup: ## Create a backup of the current database
 database-backup:
-> sudo docker-compose -f "docker-compose.yaml" up -d database
+> sudo docker-compose -f "docker-compose.yaml" up -d database >/dev/null 2>&1
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > export DB_NAME="transpridebrighton"
-> sudo docker-compose -f "docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat './.secrets/dbpass' | tr -d '\n\r')" database mysqldump -u"root" --add-drop-table --add-drop-trigger --add-locks --comments --complete-insert --disable-keys --hex-blob --insert-ignore --quote-names --single-transaction --triggers --tz-utc "$${DB_PASS}" | bzip2 --compress --best --stdout > "/tmp/$${DB_DUMP_FILENAME}.bz2"
-> echo; echo "The database backup is located at the temporary location of '/tmp/$${DB_DUMP_FILENAME}.bz2', please move this somewhere permanent."
+> sudo docker-compose -f "docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat './.secrets/dbpass' | tr -d '\n\r')" database mysqldump -u"root" --add-drop-table --add-drop-trigger --add-locks --comments --complete-insert --disable-keys --hex-blob --insert-ignore --quote-names --single-transaction --triggers --tz-utc "$${DB_NAME}" 2>/dev/null | bzip2 --compress --best --stdout > "/tmp/$${DB_DUMP_FILENAME}.bz2" 2>/dev/null
+> echo "/tmp/$${DB_DUMP_FILENAME}.bz2"
 .PHONY: database-backup
 .SILENT: database-backup
