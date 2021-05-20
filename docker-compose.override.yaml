@@ -19,7 +19,7 @@ services:
             # system directories.
             -   type: 'volume'
                 source: 'database'
-                target: '/var/run/mysql'
+                target: '/var/lib/mysql'
                 read_only: false
 
 volumes:

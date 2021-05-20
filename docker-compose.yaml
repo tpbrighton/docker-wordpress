@@ -65,8 +65,8 @@ services:
             MYSQL_DATABASE: 'transpridebrighton'
         volumes:
             -   type: 'bind'
-                source: '/var/run/mysql'
-                target: '/var/run/mysql'
+                source: '/opt/mysql'
+                target: '/var/lib/mysql'
                 read_only: false
         secrets:
             -   'dbpass'
@@ -75,6 +75,3 @@ services:
 secrets:
     dbpass:
         file: './.secrets/dbpass'
-volumes:
-    database:
-        driver: 'local'

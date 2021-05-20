@@ -113,7 +113,7 @@ password:
 
 deploy: ## Once everything is built, run the web server
 deploy:
-> sudo mkdir "/var/run/mysql"
+> sudo mkdir -p "/opt/mysql"
 > sudo docker-compose -f "docker-compose.yaml" up -d
 .PHONY: deploy
 .SILENT: deploy
