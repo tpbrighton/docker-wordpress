@@ -37,7 +37,7 @@ install-docker:
 > sudo apt update -y
 > sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 > command -v "docker-compose" >/dev/null 2>&1 && { echo ""; echo >&2 "Compose already installed. Docker installed, but Compose installation cancelled."; exit 1; } || true
-# The following command installs v1.29.0 because I can't figure out a way to detect the latest version. Check for that at:
+# The following command installs v1.29.2 because I can't figure out a way to detect the latest version. Check for that at:
 # https://github.com/docker/compose/releases/latest
 > export COMPOSE_VERSION="1.29.2"
 > sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/docker-compose
@@ -79,7 +79,7 @@ enable-https:
 > sudo docker-compose -f "docker-compose.yaml" down
 > sudo mkdir -p "/etc/letsencrypt/challenges"
 > sudo docker-compose -f "docker-compose.yaml" run -d server nginx -c "/etc/nginx/acme.conf"
-> sudo letsencrypt certonly --webroot --webroot-path="/etc/letsencrypt/challenges" --cert-name="transpridebrighton.org" -d "transpridebrighton.org" -d "www.transpridebrighton.org"
+> sudo certbot certonly --webroot --webroot-path="/etc/letsencrypt/challenges" --cert-name="transpridebrighton.org" -d "transpridebrighton.org" -d "www.transpridebrighton.org"
 > sudo openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
 > sudo docker-compose -f "docker-compose.yaml" down
 .PHONY: enable-https
@@ -122,7 +122,7 @@ deploy:
 
 renew-certs: ## Re-installs SSL Certificates that near expiry and due for renewal
 renew-certs:
-> sudo letsencrypt renew
+> sudo certbot renew
 # Nginx has to be restarted in order to use the new certificates.
 > sudo docker-compose -f "docker-compose.yaml" restart server
 .PHONY: renew-certs
