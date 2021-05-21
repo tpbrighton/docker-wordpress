@@ -172,3 +172,37 @@ database-backup:
 > echo >&2 ""$$(tput setaf 2)Database has been backed up to "s3://tpbdb/$${DB_DUMP_COMPRESSED}$$(tput sgr0)""
 .PHONY: database-backup
 .SILENT: database-backup
+
+restore-backup: ## Restore the Database from a Backup File
+restore-backup:
+> whiptail --title="WARNING" --yesno --defaultno "THIS WILL COMPLETELY DELETE YOUR EXISTING DATABASE! Are you sure?" 8 60 || { exit 1; }
+> whiptail --title "Location" --yesno --yes-button "Local Filesystem" --no-button "S3 Bucket" "Does the backup exist on the local filesystem, or is it stored in the Amazon S3 bucket?" 8 60 && { \
+    export BACKUP_FILE=$$(whiptail --inputbox "Please enter the full path to the backup file that is located on the local filesystem:" 8 60 3>&1 1>&2 2>&3); \
+    [ -f "$${BACKUP_FILE}" ] || { echo >&2 "$$(tput setaf 1)Backup file \"$${BACKUP_FILE}\" does not exist.$$(tput sgr0)"; exit 1; }; \
+} || { \
+    export S3_FILE=$$(whiptail --inputbox "Please enter the name/path of the file from the \"tpbdb\" S3 bucket you'd like to use." 8 60  3>&1 1>&2 2>&3); \
+    export BACKUP_FILE="$$(mktemp)"; \
+    docker run --rm -it --user="$$(id -u 2>/dev/null)" --volume "/tmp:/tmp" "amazon/aws-cli" s3 cp "s3://tpbdb/$${S3_FILE}" "$${BACKUP_FILE}" || { \
+        echo >&2 "$$(tput setaf 1)Could not download database backup file \"$${S3_FILE}\" from S3 bucket \"tpbdb\".$$(tput sgr0)"; \
+        rm "$${BACKUP_FILE}" || true; \
+        exit 2; \
+    }; \
+}
+> export TEMP_FILE="$$(mktemp)"
+> export BACKUP_FILE_IMPORT="$${TEMP_FILE}"
+> bzip2 --decompress --stdout < "$${BACKUP_FILE}" > "$${BACKUP_FILE_IMPORT}" || { \
+    echo >&2 "Could not decompress backup file, continuing with the assumption it is not compressed."; \
+    export BACKUP_FILE_IMPORT="$${BACKUP_FILE}"; \
+    rm "$${TEMP_FILE}" || true; \
+}
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" -e "DROP DATABASE IF EXISTS transpridebrighton; CREATE DATABASE IF NOT EXISTS transpridebrighton;"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" "transpridebrighton" < "$${BACKUP_FILE_IMPORT}" || { \
+    echo >&2 "$$(tput setaf 1)Could not import database backup file.$$(tput sgr0)"; \
+    echo >&2 "$$(tput setaf 1)You now have no database! Go find a working backup quickly!$$(tput sgr0)"; \
+    rm "$${TEMP_FILE}" || true; \
+    exit 1; \
+}
+> rm "$${TEMP_FILE}" || true
+> echo >&2 "$$(tput setaf 2)Database has been restored from backup, double check that it's working!$$(tput sgr0)"
+.PHONY: restore-backup
+.SILENT: restore-backup
