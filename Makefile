@@ -9,6 +9,10 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
+THIS_MAKEFILE_PATH:=$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+THIS_DIR:=$(shell cd $(dir $(THIS_MAKEFILE_PATH));pwd)
+THIS_MAKEFILE:=$(notdir $(THIS_MAKEFILE_PATH))
+
 usage:
 > @grep -E '(^[a-zA-Z_-]+:\s*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.?## "}; {printf "\033[32m %-30s\033[0m%s\n", $$1, $$2}' | sed -e 's/\[32m ## /[33m/'
 .PHONY: usage
@@ -40,7 +44,7 @@ install-docker:
 # The following command installs v1.29.2 because I can't figure out a way to detect the latest version. Check for that at:
 # https://github.com/docker/compose/releases/latest
 > export COMPOSE_VERSION="1.29.2"
-> sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o /usr/local/bin/docker-compose
+> sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o "/usr/local/bin/docker-compose"
 > sudo chmod +x /usr/local/bin/docker-compose
 .PHONY: install-docker
 .SILENT: install-docker
@@ -70,18 +74,18 @@ fetch-wordpress:
 
 build-images: ## Build Website Images ready for Deployment
 build-images:
-> sudo docker-compose -f "docker-compose.yaml" build --pull
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
 .PHONY: build-images
 .SILENT: build-images
 
 enable-https: ## Installs an SSL Certificate for the Domain
 enable-https:
-> sudo docker-compose -f "docker-compose.yaml" down
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 > sudo mkdir -p "/etc/letsencrypt/challenges"
-> sudo docker-compose -f "docker-compose.yaml" run -d server nginx -c "/etc/nginx/acme.conf"
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d server nginx -c "/etc/nginx/acme.conf"
 > sudo certbot certonly --webroot --webroot-path="/etc/letsencrypt/challenges" --cert-name="transpridebrighton.org" -d "transpridebrighton.org" -d "www.transpridebrighton.org"
 > sudo openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
-> sudo docker-compose -f "docker-compose.yaml" down
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 .PHONY: enable-https
 .SILENT: enable-https
 
@@ -114,7 +118,7 @@ password:
 deploy: ## Once everything is built, run the web server
 deploy:
 > sudo mkdir -p "/opt/mysql"
-> sudo docker-compose -f "docker-compose.yaml" up -d
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
 .PHONY: deploy
 .SILENT: deploy
 
@@ -124,7 +128,7 @@ renew-certs: ## Re-installs SSL Certificates that near expiry and due for renewa
 renew-certs:
 > sudo certbot renew
 # Nginx has to be restarted in order to use the new certificates.
-> sudo docker-compose -f "docker-compose.yaml" restart server
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
 .PHONY: renew-certs
 .SILENT: renew-certs
 
