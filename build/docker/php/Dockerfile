@@ -36,12 +36,11 @@ RUN    apk add --no-cache --upgrade --virtual ".pecl-build-deps" $PHPIZE_DEPS im
     && apk del ".pecl-build-deps"
 
 # Composer (see https://github.com/composer/docker/blob/master/1.8/Dockerfile)
-RUN    curl --silent --fail --location --retry 3 --output "/tmp/installer.php.hash" --url "https://composer.github.io/installer.sig" \
+RUN    curl --silent --fail --location --retry 3 --output "/tmp/installer.sig" --url "https://composer.github.io/installer.sig" \
     && curl --silent --fail --location --retry 3 --output "/tmp/installer.php" --url "https://getcomposer.org/installer" \
-    && php -r "if (hash_file('sha384', '/tmp/installer.php') === file_get_contents('/tmp/installer.php.hash')) { echo 'Installer verified.' . PHP_EOL; } else { echo 'Installer corrupt.' . PHP_EOL; unlink('/tmp/installer.php'); exit(1); }" \
+    && php -r "if (hash_file('sha384', '/tmp/installer.php') === file_get_contents('/tmp/installer.sig')) { echo 'Installer verified.' . PHP_EOL; } else { echo 'Installer corrupt.' . PHP_EOL; unlink('/tmp/installer.php'); exit(1); }" \
     && php "/tmp/installer.php" --no-ansi --install-dir="/sbin" --filename="composer" \
-    && composer --no-ansi --no-interaction --version \
-    && rm -f "installer.php.hash" "installer.php"
+    && rm -f "/tmp/installer.sig" "/tmp/installer.php"
 
 # Create a new user with UID#1000 (the UID that the user on the host server is likely to have) and
 # instruct PHP to run as that user.
