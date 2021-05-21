@@ -63,12 +63,17 @@ install-letsencrypt:
 
 fetch-wordpress: ## Fetch the latest version of WordPress
 fetch-wordpress:
-> mkdir -p "./build"
-> ls "./build/wordpress.tar.gz" >/dev/null 2>&1 && { echo "Previous installation failed; remove ./build/wordpress.tar.gz to try again."; } || { curl -L "https://wordpress.org/latest.tar.gz" -o "./build/wordpress.tar.gz"; }
-> (cd "./build"; tar xzf "wordpress.tar.gz")
-> rm -rf "./public/wp-admin" "./public/wp-includes"
-> rsync --archive --whole-file --one-file-system "./build/wordpress/" "./public/"
-> rm -rf "./build/wordpress" "./build/wordpress.tar.gz"
+> mkdir -p "$(THIS_DIR)/build"
+> ls "$(THIS_DIR)/build/wordpress.tar.gz" >/dev/null 2>&1 && { \
+    echo "Previous installation failed; remove \"$(THIS_DIR)/build/wordpress.tar.gz\" to try again."; \
+    exit 1;
+} || { \
+    curl -L "https://wordpress.org/latest.tar.gz" -o "$(THIS_DIR)/build/wordpress.tar.gz"; \
+}
+> (cd "$(THIS_DIR)/build"; tar xzf "wordpress.tar.gz")
+> rm -rf "$(THIS_DIR)/public/wp-admin" "$(THIS_DIR)/public/wp-includes"
+> rsync --archive --whole-file --one-file-system "$(THIS_DIR)/build/wordpress/" "$(THIS_DIR)/public/"
+> rm -rf "$(THIS_DIR)/build/wordpress" "$(THIS_DIR)/build/wordpress.tar.gz"
 .PHONY: fetch-wordpress
 .SILENT: fetch-wordpress
 
@@ -82,8 +87,12 @@ enable-https: ## Installs an SSL Certificate for the Domain
 enable-https:
 > sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 > sudo mkdir -p "/etc/letsencrypt/challenges"
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d server nginx -c "/etc/nginx/acme.conf"
-> sudo certbot certonly --webroot --webroot-path="/etc/letsencrypt/challenges" --cert-name="transpridebrighton.org" -d "transpridebrighton.org" -d "www.transpridebrighton.org"
+> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
+> sudo certbot certonly --webroot \
+    --webroot-path="/etc/letsencrypt/challenges" \
+    --cert-name="transpridebrighton.org" \
+    -d "transpridebrighton.org" \
+    -d "www.transpridebrighton.org"
 > sudo openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
 > sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 .PHONY: enable-https
@@ -92,26 +101,27 @@ enable-https:
 mock-https: ## Mocks an SSL Certificate for Development
 mock-https:
 > command -v "mkcert" >/dev/null 2>&1 || { echo >&2 "Please install MkCert for Development."; exit 1; }
-> mkdir -p "./build/ssl/challenges"
-> mkdir -p "./build/ssl/live/transpridebrighton.org"
-> (cd "./build/ssl"; mkcert "transpridebrighton.local" "www.transpridebrighton.local")
-> mv "./build/ssl/transpridebrighton.local+1.pem" "./build/ssl/live/transpridebrighton.org/fullchain.pem"
-> cp "./build/ssl/live/transpridebrighton.org/fullchain.pem" "./build/ssl/live/transpridebrighton.org/chain.pem"
-> mv "./build/ssl/transpridebrighton.local+1-key.pem" "./build/ssl/live/transpridebrighton.org/privkey.pem"
-> openssl dhparam -out "./build/ssl/dhparam.pem" 1024
+> mkdir -p "$(THIS_DIR)/build/ssl/challenges"
+> mkdir -p "$(THIS_DIR)/build/ssl/live/transpridebrighton.org"
+> (cd "$(THIS_DIR)/build/ssl"; mkcert "transpridebrighton.local" "www.transpridebrighton.local")
+> mv "$(THIS_DIR)/build/ssl/transpridebrighton.local+1.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/fullchain.pem"
+> cp "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/fullchain.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/chain.pem"
+> mv "$(THIS_DIR)/build/ssl/transpridebrighton.local+1-key.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/privkey.pem"
+> openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 1024
 .PHONY: mock-https
 .SILENT: mock-https
 
 password: ## Generates a secure, random password for the database
 password:
-> mkdir -p "./.secrets"
-> echo "Your randomly generated password is:"
-> echo
-> echo "$$(date "+%s.%N" | sha256sum | base64 | head -c 32)"
-> echo
-> echo "Please create the file '.secrets/dbpass' and put the password as the sole contents of that file."
-> echo "If that file already exists and is not empty, it's likely already in use. If so:"
-> echo "DO NOT REMOVE YOUR ONLY COPY OF THE EXISTING PASSWORD."
+> mkdir -p "$(THIS_DIR)/.secrets"
+> [ ! -f "$(THIS_DIR)/.secrets/dbpass" ] || { \
+    echo >&2 "$$(tput setaf 1)A password has already been created. Remove the file \"$(THIS_DIR)/.secrets/dbpass\" to try again.$$(tput sgr0)"; \
+    echo >&2 "$$(tput setaf 1)Double check that you're NOT REMOVING THE ONLY COPY OF YOUR EXISTING PASSWORD.$$(tput sgr0)"; \
+    exit 1; \
+}
+> touch "$(THIS_DIR)/.secrets/dbpass"
+> echo "$$(date "+%s.%N" | sha256sum | base64 | head -c 40)" > "$(THIS_DIR)/.secrets/dbpass"
+> echo >&2 "$$(tput setaf 2)Database password generated and placed in file \"$(THIS_DIR)/.secrets/dbpass\".$$(tput sgr0)"
 .PHONY: password
 .SILENT: password
 
@@ -159,5 +169,6 @@ database-backup:
     exit 4; \
 }
 > rm "/tmp/$${DB_DUMP_COMPRESSED}"
+> echo >&2 ""$$(tput setaf 2)Database has been backed up to "s3://tpbdb/$${DB_DUMP_COMPRESSED}$$(tput sgr0)""
 .PHONY: database-backup
 .SILENT: database-backup
