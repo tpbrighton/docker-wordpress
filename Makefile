@@ -138,9 +138,9 @@ database-backup:
 > export DB_SERVICE="database"
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > export S3_BUCKET="tpbdb"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" -f "$(THIS_DIR)/docker-compose.override.yaml" up -d "database" 2>/dev/null || { echo >&2 "Could not bring up Docker service \"database\"."; exit 3; }
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" 2>/dev/null || { echo >&2 "Could not bring up Docker service \"database\"."; exit 3; }
 > sleep 15
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" -f "$(THIS_DIR)/docker-compose.override.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
