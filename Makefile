@@ -132,12 +132,32 @@ renew-certs:
 .PHONY: renew-certs
 .SILENT: renew-certs
 
-database-backup: ## Create a backup of the current database
+database-backup: ## Create a backup of the database and upload to S3
 database-backup:
-> sudo docker-compose -f "docker-compose.yaml" up -d database >/dev/null 2>&1
-> export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > export DB_NAME="transpridebrighton"
-> sudo docker-compose -f "docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat './.secrets/dbpass' | tr -d '\n\r')" database mysqldump -u"root" --add-drop-table --add-drop-trigger --add-locks --comments --complete-insert --disable-keys --hex-blob --insert-ignore --quote-names --single-transaction --triggers --tz-utc "$${DB_NAME}" 2>/dev/null | bzip2 --compress --best --stdout > "/tmp/$${DB_DUMP_FILENAME}.bz2" 2>/dev/null
-> echo "/tmp/$${DB_DUMP_FILENAME}.bz2"
+> export DB_SERVICE="database"
+> export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
+> export S3_BUCKET="tpbdb"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" -f "$(THIS_DIR)/docker-compose.override.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 3; }
+> sleep 15
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" -f "$(THIS_DIR)/docker-compose.override.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
+    --add-locks --add-drop-table  --add-drop-trigger \
+    --comments  --disable-keys    --complete-insert \
+    --hex-blob  --insert-ignore   --quote-names \
+    --tz-utc    --triggers        --single-transaction \
+    "transpridebrighton" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 4; }
+> export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}.bz2"
+> bzip2 --compress --best --stdout < "/tmp/$${DB_DUMP_FILENAME}" > "/tmp/$${DB_DUMP_COMPRESSED}" && { \
+    rm "/tmp/$${DB_DUMP_FILENAME}" || true; \
+} || { \
+    echo >&2 "Could not compress database dump, continuing to upload uncompressed file to S3."; \
+    export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
+}
+> docker run --rm -it --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" || { \
+    echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
+    echo >&2 "Backup file is located at \"/tmp/$${DB_DUMP_COMPRESSED}\" for manual saving."; \
+    exit 4; \
+}
+> rm "/tmp/$${DB_DUMP_COMPRESSED}"
 .PHONY: database-backup
 .SILENT: database-backup
