@@ -157,13 +157,13 @@ database-backup:
 > command -v docker-compose >/dev/null 2>&1 || { echo >&2 "Command \"docker-compose\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
-> sleep 15
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
+> sleep 10
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
     --tz-utc    --triggers        --single-transaction \
-    "transpridebrighton" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
+    "$${DB_NAME}" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
 > export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}.bz2"
 > bzip2 --compress --best --stdout < "/tmp/$${DB_DUMP_FILENAME}" > "/tmp/$${DB_DUMP_COMPRESSED}" && { \
     rm "/tmp/$${DB_DUMP_FILENAME}" || true; \
