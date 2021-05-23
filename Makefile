@@ -136,15 +136,21 @@ deploy:
 
 renew-certs: ## Re-installs SSL Certificates that near expiry and due for renewal
 renew-certs:
-> sudo certbot renew
+> echo >&2 "--------------------------------------------------------------------------------"
+> date >&2
+> certbot renew
+# CRON by default does not set any useful environment variables, Docker Compose
+# is installed to a non-standard location so we have to specify that.
+> export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
 # Nginx has to be restarted in order to use the new certificates.
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
 .PHONY: renew-certs
 .SILENT: renew-certs
 
 database-backup: ## Create a backup of the database and upload to S3
 database-backup:
-# CRON by default does not set any useful environment variables, Docker Compose is installed to a non-standard location so we have to specify that.define
+# CRON by default does not set any useful environment variables, Docker Compose
+# is installed to a non-standard location so we have to specify that.
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
 # Database backup is meant to be run by CRON and output saved to a log file. Use ANSI only (no colours).
 > export DB_NAME="transpridebrighton"
