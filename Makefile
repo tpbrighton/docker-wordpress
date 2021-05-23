@@ -171,7 +171,7 @@ database-backup:
     echo >&2 "Could not compress database dump, continuing to upload uncompressed file to S3."; \
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
-> docker run --rm -it --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
+> docker run --rm --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
     echo >&2 "Database has been backup and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"."; \
 } || { \
     echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
