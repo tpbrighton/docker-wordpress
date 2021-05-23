@@ -144,19 +144,26 @@ renew-certs:
 
 database-backup: ## Create a backup of the database and upload to S3
 database-backup:
+# CRON by default does not set any useful environment variables, Docker Compose is installed to a non-standard location so we have to specify that.define
+> export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
 # Database backup is meant to be run by CRON and output saved to a log file. Use ANSI only (no colours).
 > export DB_NAME="transpridebrighton"
 > export DB_SERVICE="database"
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > export S3_BUCKET="tpbdb"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" 2>/dev/null || { echo >&2 "Could not bring up Docker service \"database\"."; exit 3; }
+> echo >&2 "--------------------------------------------------------------------------------"
+> date >&2
+> command -v docker >/dev/null 2>&1 || { echo >&2 "Command \"docker\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
+> command -v docker-compose >/dev/null 2>&1 || { echo >&2 "Command \"docker-compose\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
+> command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
 > sleep 15
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
     --tz-utc    --triggers        --single-transaction \
-    "transpridebrighton" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 4; }
+    "transpridebrighton" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
 > export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}.bz2"
 > bzip2 --compress --best --stdout < "/tmp/$${DB_DUMP_FILENAME}" > "/tmp/$${DB_DUMP_COMPRESSED}" && { \
     rm "/tmp/$${DB_DUMP_FILENAME}" || true; \
@@ -164,14 +171,15 @@ database-backup:
     echo >&2 "Could not compress database dump, continuing to upload uncompressed file to S3."; \
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
-> docker run --rm -it --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" || { \
+> docker run --rm -it --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
+    echo >&2 "Uploaded \"/tmp/$${DB_DUMP_COMPRESSED}\" to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"." \
+} || { \
     echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
     echo >&2 "Backup file is located at \"/tmp/$${DB_DUMP_COMPRESSED}\" for manual saving."; \
     exit 4; \
 }
 > rm "/tmp/$${DB_DUMP_COMPRESSED}"
 > echo >&2 "Database has been backed up to \"s3://tpbdb/$${DB_DUMP_COMPRESSED}\"."
-> echo >&2
 .PHONY: database-backup
 .SILENT: database-backup
 
