@@ -144,6 +144,7 @@ renew-certs:
 
 database-backup: ## Create a backup of the database and upload to S3
 database-backup:
+# Database backup is meant to be run by CRON and output saved to a log file. Use ANSI only (no colours).
 > export DB_NAME="transpridebrighton"
 > export DB_SERVICE="database"
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
@@ -169,7 +170,8 @@ database-backup:
     exit 4; \
 }
 > rm "/tmp/$${DB_DUMP_COMPRESSED}"
-> echo >&2 ""$$(tput setaf 2)Database has been backed up to "s3://tpbdb/$${DB_DUMP_COMPRESSED}$$(tput sgr0)""
+> echo >&2 "Database has been backed up to \"s3://tpbdb/$${DB_DUMP_COMPRESSED}\"."
+> echo >&2
 .PHONY: database-backup
 .SILENT: database-backup
 
