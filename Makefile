@@ -172,14 +172,13 @@ database-backup:
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
 > docker run --rm -it --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
-    echo >&2 "Uploaded \"/tmp/$${DB_DUMP_COMPRESSED}\" to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"." \
+    echo >&2 "Database has been backup and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"." \
 } || { \
     echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
     echo >&2 "Backup file is located at \"/tmp/$${DB_DUMP_COMPRESSED}\" for manual saving."; \
     exit 4; \
 }
 > rm "/tmp/$${DB_DUMP_COMPRESSED}"
-> echo >&2 "Database has been backed up to \"s3://tpbdb/$${DB_DUMP_COMPRESSED}\"."
 .PHONY: database-backup
 .SILENT: database-backup
 
