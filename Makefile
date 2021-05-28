@@ -169,6 +169,7 @@ database-backup:
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
     --tz-utc    --triggers        --single-transaction \
+    --skip-extended-insert \
     "$${DB_NAME}" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
 > export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}.bz2"
 > bzip2 --compress --best --stdout < "/tmp/$${DB_DUMP_FILENAME}" > "/tmp/$${DB_DUMP_COMPRESSED}" && { \
