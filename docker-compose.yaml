@@ -14,7 +14,8 @@ services:
         build:
             context: './build/docker/server'
             args:
-                NGINX_VERSION: '1.19.10-alpine'
+                NGINX_VERSION: '1.21.0-alpine'
+                DOMAIN: '${DOMAIN:-transpridebrighton.org}'
         restart: 'unless-stopped'
         ports:
             -   target: 80

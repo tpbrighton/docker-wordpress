@@ -10,6 +10,7 @@ Windows or macOS so you're on your own if you use those operating systems.
 Create an additional file called `.env` in the project directory with the following contents:
 
 ```dotenv
+DOMAIN=localhost
 WEB_PORT=8080
 SSL_PORT=8083
 ```

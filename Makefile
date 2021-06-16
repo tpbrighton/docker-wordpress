@@ -101,13 +101,15 @@ enable-https:
 mock-https: ## Mocks an SSL Certificate for Development
 mock-https:
 > command -v "mkcert" >/dev/null 2>&1 || { echo >&2 "Please install MkCert for Development."; exit 1; }
+> export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
+> [ -z "$${DOMAIN}" ] && { echo >&2 "Could not determine domain from environment file."; exit 1; }
 > mkdir -p "$(THIS_DIR)/build/ssl/challenges"
-> mkdir -p "$(THIS_DIR)/build/ssl/live/transpridebrighton.org"
-> (cd "$(THIS_DIR)/build/ssl"; mkcert "transpridebrighton.local" "www.transpridebrighton.local")
-> mv "$(THIS_DIR)/build/ssl/transpridebrighton.local+1.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/fullchain.pem"
-> cp "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/fullchain.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/chain.pem"
-> mv "$(THIS_DIR)/build/ssl/transpridebrighton.local+1-key.pem" "$(THIS_DIR)/build/ssl/live/transpridebrighton.org/privkey.pem"
-> openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 1024
+> mkdir -p "$(THIS_DIR)/build/ssl/live/$${DOMAIN}"
+> (cd "$(THIS_DIR)/build/ssl"; mkcert "localhost" "$${DOMAIN}" "127.0.0.1")
+> mv "$(THIS_DIR)/build/ssl/localhost+2.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/fullchain.pem"
+> cp "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/fullchain.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/chain.pem"
+> mv "$(THIS_DIR)/build/ssl/localhost+2-key.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/privkey.pem"
+> openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 512
 .PHONY: mock-https
 .SILENT: mock-https
 
