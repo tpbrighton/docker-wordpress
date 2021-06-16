@@ -66,7 +66,7 @@ fetch-wordpress:
 > mkdir -p "$(THIS_DIR)/build"
 > ls "$(THIS_DIR)/build/wordpress.tar.gz" >/dev/null 2>&1 && { \
     echo "Previous installation failed; remove \"$(THIS_DIR)/build/wordpress.tar.gz\" to try again."; \
-    exit 1;
+    exit 1; \
 } || { \
     curl -L "https://wordpress.org/latest.tar.gz" -o "$(THIS_DIR)/build/wordpress.tar.gz"; \
 }
@@ -115,15 +115,15 @@ mock-https:
 
 password: ## Generates a secure, random password for the database
 password:
-> mkdir -p "$(THIS_DIR)/.secrets"
-> [ ! -f "$(THIS_DIR)/.secrets/dbpass" ] || { \
-    echo >&2 "$$(tput setaf 1)A password has already been created. Remove the file \"$(THIS_DIR)/.secrets/dbpass\" to try again.$$(tput sgr0)"; \
+> mkdir -p "$(THIS_DIR)/build/.secrets"
+> [ ! -f "$(THIS_DIR)/build/.secrets/dbpass" ] || { \
+    echo >&2 "$$(tput setaf 1)A password has already been created. Remove the file \"$(THIS_DIR)/build/.secrets/dbpass\" to try again.$$(tput sgr0)"; \
     echo >&2 "$$(tput setaf 1)Double check that you're NOT REMOVING THE ONLY COPY OF YOUR EXISTING PASSWORD.$$(tput sgr0)"; \
     exit 1; \
 }
-> touch "$(THIS_DIR)/.secrets/dbpass"
-> echo "$$(date "+%s.%N" | sha256sum | base64 | head -c 40)" > "$(THIS_DIR)/.secrets/dbpass"
-> echo >&2 "$$(tput setaf 2)Database password generated and placed in file \"$(THIS_DIR)/.secrets/dbpass\".$$(tput sgr0)"
+> touch "$(THIS_DIR)/build/.secrets/dbpass"
+> echo "$$(date "+%s.%N" | sha256sum | base64 | head -c 40)" > "$(THIS_DIR)/build/.secrets/dbpass"
+> echo >&2 "$$(tput setaf 2)Database password generated and placed in file \"$(THIS_DIR)/build/.secrets/dbpass\".$$(tput sgr0)"
 .PHONY: password
 .SILENT: password
 
