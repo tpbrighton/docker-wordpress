@@ -109,7 +109,7 @@ mock-https:
 > mv "$(THIS_DIR)/build/ssl/localhost+2.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/fullchain.pem"
 > cp "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/fullchain.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/chain.pem"
 > mv "$(THIS_DIR)/build/ssl/localhost+2-key.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/privkey.pem"
-> openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 512
+> openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 1024
 .PHONY: mock-https
 .SILENT: mock-https
 
