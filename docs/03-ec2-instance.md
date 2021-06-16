@@ -120,7 +120,7 @@ IAM defines the authorisation of who can access what services.
 ### Policies
 
 Go to the **Policies** section in the sidebar. This will contain hundreds of AWS-managed policies (indicated by an
-orange-yellow icon by the policy name). 
+orange-yellow icon by the policy name).
 
 #### Media Policy
 
@@ -257,8 +257,6 @@ Head to EC2 by finding it in the services dropdown or by searching for it.
 6. This will automatically start a download for a file called `AWSLondonDefault.pem` - this is a private key. **DO NOT
    LOSE THIS FILE. YOU WILL NOT BE ABLE TO DOWNLOAD IT AGAIN.**
 
-> Once the EC2 instance (server) is set up, you can add additional (eg, your own) public key to `~/.ssh/authorized_keys`
-
 ### Security Groups
 
 Head to **Security Groups** (under **Network & Security**) in the sidebar.
@@ -368,7 +366,7 @@ The server will now be booting up and will be ready momentarily. In the meantime
    - Click **Save**.
 2. Head to **Elastic IPs** (under **Network & Security**) in the sidebar.
    - Select the Elastic IP we allocated earlier.
-   - Click the **Actions** dropdown menu, and select **Associate Elastic IP address*.
+   - Click the **Actions** dropdown menu, and select **Associate Elastic IP address**.
    - Select the _Instance_ (it should be the only one that comes up).
    - Click **Associate**.
 
@@ -388,6 +386,8 @@ For example, in my case this would be:
 ```shell
 ssh "ubuntu@35.177.199.22" -i "~/.ssh/AWSLondonDefault.pem"
 ```
+
+> Once the EC2 instance (server) is set up, you can add additional (eg, your own) public key to `~/.ssh/authorized_keys`
 
 ### Reserved Instances
 
