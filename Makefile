@@ -24,6 +24,18 @@ vars:
 .PHONY: vars
 .SILENT: vars
 
+require-root:
+> [ "$$(id -u)" == "0" ] || { echo "This command must be run as root. Please retry with sudo."; exit 1; }
+.PHONY: require-root
+.SILENT: require-root
+
+require-docker:
+> command -v "docker" >/dev/null 2>&1 || { echo >&2 "Docker client required for command not found (PATH: \"$${PATH}\")."; exit 1; }
+> docker info >/dev/null 2>&1 || { echo >&2 "Docker daemon unavailable. Perhaps retry as root/sudo?"; exit; }
+> command -v "docker-compose" >/dev/null 2>&1 || { echo >&2 "Docker Compose required for command not found (PATH: \"$${PATH}\")."; exit 1; }
+.PHONY: require-docker
+.SILENT: require-docker
+
 ## Server Setup
 
 console-setup: ## Setup some nice defaults for the terminal (optional)
@@ -37,31 +49,31 @@ console-setup:
 .SILENT: console-setup
 
 install-docker: ## Installs Docker on Ubuntu
-install-docker:
+install-docker: require-root
 > command -v "docker" >/dev/null 2>&1 && { echo >&2 "Docker already installed. Installation cancelled."; exit 1; } || true
-> sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-> sudo apt-get update -y
-> sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+> apt-get remove -y docker docker-engine docker.io containerd runc || true
+> apt-get update -y
+> apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
 > curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | sudo gpg --dearmor -o "/usr/share/keyrings/docker-archive-keyring.gpg"
 > echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
-> sudo apt update -y
-> sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+> apt update -y
+> apt-get install -y docker-ce docker-ce-cli containerd.io
 > command -v "docker-compose" >/dev/null 2>&1 && { echo ""; echo >&2 "Compose already installed. Docker installed, but Compose installation cancelled."; exit 1; } || true
-# The following command installs v1.29.2 because I can't figure out a way to detect the latest version. Check for that at:
+# The following command installs v2.2.3 because I can't figure out a way to detect the latest version. Check for that at:
 # https://github.com/docker/compose/releases/latest
-> export COMPOSE_VERSION="1.29.2"
-> sudo curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o "/usr/local/bin/docker-compose"
-> sudo chmod +x /usr/local/bin/docker-compose
+> export COMPOSE_VERSION="2.2.3"
+> curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o "/usr/local/bin/docker-compose"
+> chmod +x /usr/local/bin/docker-compose
 .PHONY: install-docker
 .SILENT: install-docker
 
 install-letsencrypt: ## Installs Let's Encrypt client on Ubuntu
-install-letsencrypt:
+install-letsencrypt: require-root
 > command -v "letsencrypt" >/dev/null 2>&1 && { echo >&2 "Let's Encrypt already installed. Installation cancelled."; exit 1; } || true
 > command -v "certbot" >/dev/null 2>&1 && { echo >&2 "Let's Encrypt already installed. Installation cancelled."; exit 1; } || true
-> sudo snap refresh core
-> sudo snap install --classic certbot
-> sudo ln -s "/snap/bin/certbot" "/usr/local/bin/certbot"
+> snap refresh core
+> snap install --classic certbot
+> ln -s "/snap/bin/certbot" "/usr/local/bin/certbot"
 .PHONY: install-letsencrypt
 .SILENT: install-letsencrypt
 
@@ -84,23 +96,23 @@ fetch-wordpress:
 .SILENT: fetch-wordpress
 
 build-images: ## Build Website Images ready for Deployment
-build-images:
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
+build-images: require-docker
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
 .PHONY: build-images
 .SILENT: build-images
 
 enable-https: ## Installs an SSL Certificate for the Domain
-enable-https:
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
-> sudo mkdir -p "/etc/letsencrypt/challenges"
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
-> sudo certbot certonly --webroot \
+enable-https: require-root require-docker
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
+> mkdir -p "/etc/letsencrypt/challenges"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
+> certbot certonly --webroot \
     --webroot-path="/etc/letsencrypt/challenges" \
     --cert-name="transpridebrighton.org" \
     -d "transpridebrighton.org" \
     -d "www.transpridebrighton.org"
-> sudo openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
+> openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 .PHONY: enable-https
 .SILENT: enable-https
 
@@ -134,29 +146,29 @@ password:
 .SILENT: password
 
 deploy: ## Once everything is built, run the web server
-deploy:
-> sudo mkdir -p "/opt/mysql"
-> sudo docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
+deploy: require-root require-docker
+> mkdir -p "/opt/mysql"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
 .PHONY: deploy
 .SILENT: deploy
 
 ## Maintenance
 
 renew-certs: ## Re-installs SSL Certificates that near expiry and due for renewal
-renew-certs:
+renew-certs: require-root require-docker
 > echo >&2 "--------------------------------------------------------------------------------"
 > date >&2
-> certbot renew
 # CRON by default does not set any useful environment variables, Docker Compose
 # is installed to a non-standard location so we have to specify that.
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
+> certbot renew
 # Nginx has to be restarted in order to use the new certificates.
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
 .PHONY: renew-certs
 .SILENT: renew-certs
 
 database-backup: ## Create a backup of the database and upload to S3
-database-backup:
+database-backup: require-docker
 # CRON by default does not set any useful environment variables, Docker Compose
 # is installed to a non-standard location so we have to specify that.
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
@@ -167,8 +179,6 @@ database-backup:
 > export S3_BUCKET="tpbdb"
 > echo >&2 "--------------------------------------------------------------------------------"
 > date >&2
-> command -v docker >/dev/null 2>&1 || { echo >&2 "Command \"docker\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
-> command -v docker-compose >/dev/null 2>&1 || { echo >&2 "Command \"docker-compose\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
 > sleep 10
@@ -198,7 +208,7 @@ database-backup:
 .SILENT: database-backup
 
 restore-backup: ## Restore the Database from a Backup File
-restore-backup:
+restore-backup: require-docker
 > whiptail --title="WARNING" --yesno --defaultno "THIS WILL COMPLETELY DELETE YOUR EXISTING DATABASE! Are you sure?" 8 60 || { exit 1; }
 > whiptail --title "Location" --yesno --yes-button "Local Filesystem" --no-button "S3 Bucket" "Does the backup exist on the local filesystem, or is it stored in the Amazon S3 bucket?" 8 60 && { \
     export BACKUP_FILE=$$(whiptail --inputbox "Please enter the full path to the backup file that is located on the local filesystem:" 8 60 3>&1 1>&2 2>&3); \
@@ -231,11 +241,10 @@ restore-backup:
 .PHONY: restore-backup
 .SILENT: restore-backup
 
-install-cron: ## Install a CRON job file
-install-cron:
+install-cron: ## Install a CRON job file to automate: renew-certs, database-backup
+install-cron: require-root
 > export CRONTAB="/etc/cron.daily/tpb"
 > export COMMANDS="renew-certs database-backup"
-> [ "$$(id -u)" == "0" ] || { echo "CRON job must be installed as root. Please retry with sudo."; exit 1; }
 > rm -f "$${CRONTAB}"
 > touch "$${CRONTAB}"
 > echo "#!/bin/sh" > "$${CRONTAB}"
