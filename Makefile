@@ -18,6 +18,12 @@ usage:
 .PHONY: usage
 .SILENT: usage
 
+vars: ## Display Current Variables Set
+vars:
+> @$(foreach V,$(sort $(.VARIABLES)), $(if $(filter-out environment% default automatic, $(origin $V)),$(warning $V = $(value $V))))
+.PHONY: vars
+.SILENT: vars
+
 ## Server Setup
 
 console-setup: ## Setup some nice defaults for the terminal (optional)
@@ -224,3 +230,19 @@ restore-backup:
 > echo >&2 "$$(tput setaf 2)Database has been restored from backup, double check that it's working!$$(tput sgr0)"
 .PHONY: restore-backup
 .SILENT: restore-backup
+
+install-cron: ## Install a CRON job file
+install-cron:
+> export CRONTAB="/etc/cron.daily/tpb"
+> export COMMANDS="renew-certs database-backup"
+> [ "$$(id -u)" == "0" ] || { echo "CRON job must be installed as root. Please retry with sudo."; exit 1; }
+> rm -f "$${CRONTAB}"
+> touch "$${CRONTAB}"
+> echo "#!/bin/sh" > "$${CRONTAB}"
+> for COMMAND in $${COMMANDS}; do
+>     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
+> done
+> echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
+> echo "Please make sure this file will be loaded and run by the system CRON (perhaps check \"/etc/crontab\")."
+.PHONY: install-cron
+.SILENT: install-cron
