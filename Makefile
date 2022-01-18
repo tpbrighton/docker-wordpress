@@ -245,12 +245,13 @@ install-cron: ## Install a CRON job file to automate: renew-certs, database-back
 install-cron: require-root
 > export CRONTAB="/etc/cron.daily/tpb"
 > export COMMANDS="renew-certs database-backup"
-> rm -f "$${CRONTAB}"
+> rm -f "$${CRONTAB}" || true
 > touch "$${CRONTAB}"
 > echo "#!/bin/sh" > "$${CRONTAB}"
 > for COMMAND in $${COMMANDS}; do
 >     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
 > done
+> chmod +x "$${CRONTAB}"
 > echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
 > echo "Please make sure this file will be loaded and run by the system CRON (perhaps check \"/etc/crontab\")."
 .PHONY: install-cron
