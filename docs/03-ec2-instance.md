@@ -115,7 +115,8 @@ support case.
 
 ## IAM (Identity and Access Management)
 
-IAM defines the authorisation of who can access what services.
+[IAM](https://console.aws.amazon.com/iamv2/home "Identity and Access Management") defines the authorisation of who can
+access what services.
 
 ### Policies
 
@@ -240,7 +241,7 @@ orange-yellow icon by the policy name).
 
 ## EC2 (Elastic Compute Cloud)
 
-EC2 is the core of AWS. EC2 instances are servers.
+[EC2](https://console.aws.amazon.com/ec2/v2/home "Elastic Compute Cloud") is the core of AWS. EC2 instances are servers.
 
 Head to EC2 by finding it in the services dropdown or by searching for it.
 
@@ -369,25 +370,6 @@ The server will now be booting up and will be ready momentarily. In the meantime
    - Click the **Actions** dropdown menu, and select **Associate Elastic IP address**.
    - Select the _Instance_ (it should be the only one that comes up).
    - Click **Associate**.
-
-### Logging In
-
-You will need:
-- The IP address of the EC2 instance you've just created (this will be the elastic IP if you assigned one to the
-  instance), and
-- The path to the private key file you downloaded earlier when making a key pair.
-
-```shell
-ssh "ubuntu@<IP_ADDRESS>" -i "<KEY_FILE>"
-```
-
-For example, in my case this would be:
-
-```shell
-ssh "ubuntu@35.177.199.22" -i "~/.ssh/AWSLondonDefault.pem"
-```
-
-> Once the EC2 instance (server) is set up, you can add additional (eg, your own) public key to `~/.ssh/authorized_keys`
 
 ### Reserved Instances
 
