@@ -156,8 +156,6 @@ deploy: require-root require-docker
 
 renew-certs: ## Re-installs SSL Certificates that near expiry and due for renewal
 renew-certs: require-root require-docker
-> echo >&2 "--------------------------------------------------------------------------------"
-> date >&2
 # CRON by default does not set any useful environment variables, Docker Compose
 # is installed to a non-standard location so we have to specify that.
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
@@ -177,8 +175,6 @@ database-backup: require-docker
 > export DB_SERVICE="database"
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > export S3_BUCKET="tpbdb"
-> echo >&2 "--------------------------------------------------------------------------------"
-> date >&2
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
 > sleep 10
@@ -250,7 +246,7 @@ install-cron: require-root
 > echo "#!/bin/sh" > "$${CRONTAB}"
 > echo "mkdir -p \"$(THIS_DIR)/var/log\"" >> "$${CRONTAB}"
 > for COMMAND in $${COMMANDS}; do
->     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
+>     echo "(cd \"$(THIS_DIR)\"; date; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" \"$${COMMAND}\"; echo \"\") >>\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1" >> "$${CRONTAB}"
 > done
 > chmod +x "$${CRONTAB}"
 > echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
