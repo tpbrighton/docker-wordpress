@@ -251,7 +251,7 @@ install-cron: require-root
 > chmod +x "$${CRONTAB}"
 > echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
 > echo "Please make sure this file will be loaded and run by the system CRON (perhaps check \"/etc/crontab\")."
-> command -v "anacron" || { \
+> command -v "anacron" >/dev/null 2>&1 || { \
     echo "It is recommended to install the system package \"anacron\" or the configured CRON job may not execute correctly."; \
 }
 .PHONY: install-cron
