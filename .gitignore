@@ -4,4 +4,5 @@
 /build/wordpress/
 /build/wordpress.tar.gz
 /public/
+/var/
 /.env

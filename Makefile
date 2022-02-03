@@ -248,11 +248,13 @@ install-cron: require-root
 > rm -f "$${CRONTAB}" || true
 > touch "$${CRONTAB}"
 > echo "#!/bin/sh" > "$${CRONTAB}"
+> echo "mkdir -p \"$(THIS_DIR)/var/log\""
 > for COMMAND in $${COMMANDS}; do
->     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
+>     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
 > done
 > chmod +x "$${CRONTAB}"
 > echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
 > echo "Please make sure this file will be loaded and run by the system CRON (perhaps check \"/etc/crontab\")."
+> echo "Depending on system setup, you may be required to install the system package \"anacron\" (periodic command scheduling for CRON without assuming that the system is running continuously)."
 .PHONY: install-cron
 .SILENT: install-cron
