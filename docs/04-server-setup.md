@@ -64,13 +64,16 @@ Back on the server:
 4. The rest of the instructions have been scripted into the project, so change into the project directory: `cd /srv`
 5. Install Docker (which is what will "contain" the website software that runs WordPress): `sudo make install-docker`
 6. Install Let's Encrypt (software for generating SSL certificates): `sudo make install-letsencrypt`
-7. Build the individual containers (PHP, Database, etc); _this may take a while_: `sudo make build-images`
-8. Fetch a fresh installation of WordPress itself: `make fetch-wordpress`
-9. Get Let's Encrypt to generate SSL certificates for the website: `sudo make enable-https`
-   - This assumes that the specified domain (eg, `transpridebrighton.org`) is already pointing to the server, do not run
-     this command if you're trying to transfer the website from one server to another without any downtime. Rsync the
-     contents of `/etc/letsencrypt` instead.
-10. And finally, run the command `sudo make deploy` to start everything up. You should run this command instead of using
+7. Create a file called `.env` inside the `/srv` directory with the contents `DOMAIN=transpridebrighton.org`. This is
+   required before building the container images (the server software configuration needs to know which domain it's
+   meant to be running a website for).
+8. Build the individual containers (PHP, Database, etc); _this may take a while_: `sudo make build-images`
+9. Fetch a fresh installation of WordPress itself: `make fetch-wordpress`
+10. Get Let's Encrypt to generate SSL certificates for the website: `sudo make enable-https`
+    - This assumes that the specified domain (eg, `transpridebrighton.org`) is already pointing to the server, do not run
+      this command if you're trying to transfer the website from one server to another without any downtime. Rsync the
+      contents of `/etc/letsencrypt` instead.
+11. And finally, run the command `sudo make deploy` to start everything up. You should run this command instead of using
     Docker Compose directly (because it specifies the correct configuration file; Docker Compose by default will use all
     configuration files for a development environment instead of a specific file for a production server).
 
