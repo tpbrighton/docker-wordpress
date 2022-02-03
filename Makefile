@@ -248,7 +248,7 @@ install-cron: require-root
 > rm -f "$${CRONTAB}" || true
 > touch "$${CRONTAB}"
 > echo "#!/bin/sh" > "$${CRONTAB}"
-> echo "mkdir -p \"$(THIS_DIR)/var/log\""
+> echo "mkdir -p \"$(THIS_DIR)/var/log\"" >> "$${CRONTAB}"
 > for COMMAND in $${COMMANDS}; do
 >     echo "(cd \"$(THIS_DIR)\"; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" $${COMMAND} >\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1)" >> "$${CRONTAB}"
 > done
