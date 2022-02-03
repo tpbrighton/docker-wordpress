@@ -145,7 +145,7 @@ password:
 .PHONY: password
 .SILENT: password
 
-deploy: ## Once everything is built, run the web server
+deploy: ## Once everything is built, run the web server (for production).
 deploy: require-root require-docker
 > mkdir -p "/opt/mysql"
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
