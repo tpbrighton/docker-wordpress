@@ -31,7 +31,7 @@ require-root:
 
 require-docker:
 > command -v "docker" >/dev/null 2>&1 || { echo >&2 "Docker client required for command not found (PATH: \"$${PATH}\")."; exit 1; }
-> docker info >/dev/null 2>&1 || { echo >&2 "Docker daemon unavailable. Perhaps retry as root/sudo?"; exit; }
+> docker info >/dev/null 2>&1 || { echo >&2 "Docker daemon unavailable. Perhaps retry as root/sudo?"; exit 1; }
 > command -v "docker-compose" >/dev/null 2>&1 || { echo >&2 "Docker Compose required for command not found (PATH: \"$${PATH}\")."; exit 1; }
 .PHONY: require-docker
 .SILENT: require-docker
