@@ -39,7 +39,7 @@ command -v "${COMPOSE}" >/dev/null 2>&1 || {
 }
 sleep 15
 
-"${COMPOSE}" --project-directory="${PROJECT_DIRECTORY}" -f "docker-compose.yaml" exec -e "MYSQL_PWD=$(cat './.secrets/dbpass' | tr -d '\n\r')" "${DB_SERVICE}" \
+"${COMPOSE}" --project-directory="${PROJECT_DIRECTORY}" -f "docker-compose.yaml" exec -e "MYSQL_PWD=$(cat './build/.secrets/dbpass' | tr -d '\n\r')" "${DB_SERVICE}" \
     mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \

@@ -182,7 +182,7 @@ database-backup: require-docker
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
 > sleep 10
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
@@ -229,8 +229,8 @@ restore-backup: require-docker
     export BACKUP_FILE_IMPORT="$${BACKUP_FILE}"; \
     rm "$${TEMP_FILE}" || true; \
 }
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" -e "DROP DATABASE IF EXISTS transpridebrighton; CREATE DATABASE IF NOT EXISTS transpridebrighton;"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" "transpridebrighton" < "$${BACKUP_FILE_IMPORT}" || { \
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" -e "DROP DATABASE IF EXISTS transpridebrighton; CREATE DATABASE IF NOT EXISTS transpridebrighton;"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" "transpridebrighton" < "$${BACKUP_FILE_IMPORT}" || { \
     echo >&2 "$$(tput setaf 1)Could not import database backup file.$$(tput sgr0)"; \
     echo >&2 "$$(tput setaf 1)You now have no database! Go find a working backup quickly!$$(tput sgr0)"; \
     rm "$${TEMP_FILE}" || true; \
