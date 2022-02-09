@@ -57,6 +57,9 @@ Paste the contents of `~/.ssh/id_ed25519.pub` into the key contents box, and giv
 
 Back on the server:
 
+> If a command asks you to retry as the root user or with the sudo command, try the command again but add the word
+> `sudo` at the beginning.
+
 1. Create a directory to hold the project, industry best practices suggest using `/srv` because this server will be
    serving a website: `sudo mkdir /srv`
 2. Make sure that the current user owns it: `sudo chown -R "$(whoami):$(whoami)" /srv`
@@ -82,6 +85,9 @@ You now have a blank WordPress installation running on the server. All WordPress
 ## Setting Up WordPress
 
 - WordPress themes should be installed by unzipping into the folder: `/srv/public/wp-content/themes`.
+  - Please see [tpbrighton/maisha-wordpress-theme](https://github.com/tpbrighton/maisha-wordpress-theme) repository for
+    the original theme currently in use (repository is private because it's a paid-for theme, please see Zan Baldwin or
+    Michelle Steele for access). 
 - WordPress plugins should be installed by unzipping into the folder: `/srv/public/wp-content/plugins`.
   - To make use of AWS' SES service to send emails, install the plugin [Offload SES Lite](https://wordpress.org/plugins/wp-ses/).
   - To make use of AWS' S# service to store uploads, install the plugin [Offload Media](https://deliciousbrains.com/wp-offload-media/).
@@ -91,15 +97,58 @@ You now have a blank WordPress installation running on the server. All WordPress
 > The website will not have any content, consider using the `make restore-backup` command to install a previous version 
 > of the website's content.
 
+Put the following into the `wp-config.php` file:
+
+```php
+// Enable auto-authorization for "Offload SES Lite" plugin.
+define('WPOSES_AWS_USE_EC2_IAM_ROLE', true);
+// Hard-coded configuration settings for "WP Offload Media" plugin.
+define('AS3CF_SETTINGS', serialize([
+    'provider' => 'aws',
+    'use-server-roles' => true,
+    'copy-to-s3' => true,
+    'remove-local-file' => true,
+    'serve-from-s3' => true,
+    'enable-object-prefix' => false,
+    'force-https' => true,
+    // Make sure the following values are correct from setup:
+    'bucket' => 'tpbwp',
+    'region' => 'eu-west-2',
+]));
+```
+
 ## Maintenance
 
-There are a few commands for website maintenance:
+### Database Backup
 
-- `make database-backup` creates a backup of the database and attempts to upload it to S3 for safe keeping (which
-  according to life cycle rules on the S3 bucket, will be kept for 90 days), these backups can then be restored if
-  needed with the `make restore-backup` command.
-- SSL certificates from Let's Encrypt are only valid for 3 months, the `make renew-certs` commands checks to see if the
-  SSL certificate is expiring, and attempts to fetch and install a new one if required.
+The database can be backed up with another Make command (assuming project was installed to `/srv`). It will make a
+backup file and attempt to upload it to the S3 bucket, it that fails it will tell the location of the backup on the
+server, so you can copy it manually.
 
-> To enable the `make database-backup` and `make renew-certs` commands to be run automatically every day, run:
-> `sudo make install-cron`
+```shell
+cd /srv
+sudo make database-backup
+```
+
+### Renew SSL Certificates
+
+SSL certificates from Let's Encrypt only valid for 3 months, so another Make command checks to see if they're up for
+renewal and attempts to automatically renew the SSL certificate if it is.
+
+```shell
+cd /srv
+sudo make renew-certs
+```
+
+## Automatic Maintenance
+
+Both the `database-backup` and `renew-certs` can be run automatically, run the following Make command to install an
+automated CRON job that will run both of these commands daily.
+
+```shell
+cd /srv
+sudo make install-cron
+```
+
+> You may need to install the system package `anacron`, check the output of the `install-cron` command and if needed,
+> run the command `sudo apt install anacron`.
