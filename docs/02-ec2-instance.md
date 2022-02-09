@@ -322,6 +322,17 @@ an EC2 instance. If you want to change your server you can reallocate your reser
 > You are only changed for an Elastic IP if you are not using it (not attached to an EC2 instance). This is to prevent
 > people from hogging IP addresses.
 
+Once you have an Elastic IP address assigned by AWS, you need to update the DNS records for the `transpridebrighton.org`
+domain. Currently:
+
+- The _domain registrar_ for `transpridebrighton.org` is [GoDaddy](https://www.godaddy.com), and this is the company we
+  pay annually to renew the domain. We have configured GoDaddy to allow Cloudflare to manage nameservers for us.
+- [Cloudflare](https://www.cloudflare.com/) is the _nameserver provider_ for `transpridebrighton.org` and manages the
+  DNS records for the domain (eg, the domain `transpridebrighton.org` points to the server with this IP address).
+- You will need to update the `A` DNS record on Cloudflare with the new Elastic IP address. DNS changes usually happen
+  within 2 hours but can take up to 24 hours to propagate (if the domain already points to a server it's best to leave
+  this step until the new server is ready).
+
 ### Instances
 
 We're now ready to start up a server!
