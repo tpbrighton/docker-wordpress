@@ -23,8 +23,8 @@ SSL_PORT=8083
 > than development. Use the equivalent `docker-compose` commands instead.
 
 1. Install [Git](https://git-scm.com/), [Make](https://www.gnu.org/software/make/),
-   [MkCert](https://mkcert.dev/), [Docker](https://docs.docker.com/get-docker/)
-   + [Docker Compose](https://docs.docker.com/compose/install/), and
+   [MkCert](https://mkcert.dev/), [Docker](https://docs.docker.com/get-docker/) +
+   [Docker Compose](https://docs.docker.com/compose/install/), and
    [OpenSSL](https://www.openssl.org/).
 2. `mkcert -install`
 3. `git clone git@github.com:tpbrighton/docker-wordpress.git ./path/you/choose`
