@@ -38,12 +38,12 @@ require-docker:
 
 ## Server Setup
 
-console-setup: ## Setup some nice defaults for the terminal (optional)
+console-setup: # Setup opinionated defaults for the terminal
 console-setup:
 > ls "$$HOME/.dotfiles" >/dev/null 2>&1 && { echo "Dotfiles Repository has already been downloaded."; exit 1; } || true
 > git clone "git://github.com/zanbaldwin/dotfiles.git" "$$HOME/.dotfiles"
-> ln -s "$$HOME/.dotfiles/.bash_aliases" "$$HOME/.bash_aliases"
-> ln -s "$$HOME/.dotfiles/.bash_prompt" "$$HOME/.bash_prompt"
+> ln -s "$$HOME/.dotfiles/bash/.bash_aliases" "$$HOME/.bash_aliases"
+> ln -s "$$HOME/.dotfiles/bash/.bash_prompt" "$$HOME/.bash_prompt"
 > echo ""; echo "Type the command the following command to reload the terminal: source ~/.bashrc"
 .PHONY: console-setup
 .SILENT: console-setup
@@ -193,7 +193,7 @@ database-backup: require-docker
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
 > docker run --rm --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
-    echo >&2 "Database has been backup and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"."; \
+    echo >&2 "Database has been backed up and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"."; \
 } || { \
     echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
     echo >&2 "Backup file is located at \"/tmp/$${DB_DUMP_COMPRESSED}\" for manual saving."; \
