@@ -27,7 +27,7 @@ DB_S3_BUCKET := "tpbdb"
 ALERT_THESE_PEOPLE_ON_ERROR := "zan.baldwin@transpridebrighton.org hello@zanbaldwin.com"
 DISK_USAGE_PERCENT_WARNING_LIMIT := 90
 # Makefile commands to be run automatically by CRON should be separated by a single space.
-CRON_MAKEFILE_COMMANDS := "renew-certs database-backup"
+CRON_MAKEFILE_COMMANDS := "renew-certs database-backup check-disk-usage"
 CRON_NAME := "tpb"
 
 # ============================== #
@@ -257,6 +257,28 @@ restore-backup: require-docker
 > echo >&2 "$$(tput setaf 2)Database has been restored from backup, double check that it's working!$$(tput sgr0)"
 .PHONY: restore-backup
 .SILENT: restore-backup
+
+
+check-disk-usage: ## Check that the disk usage is less than 90%
+check-disk-usage: require-docker
+# CRON by default does not set any useful environment variables, Docker Compose
+# is installed to a non-standard location so we have to specify that.
+> export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
+> export ROOT_DISK_USAGE="$$(df -h | grep ' /$$' | tr -s ' ' | cut -d' ' -f5 | tr -d '%')"
+> test "$${ROOT_DISK_USAGE}" -eq "$${ROOT_DISK_USAGE}" || { \
+    echo "Could not determine disk usage percentage; aborting."; \
+}
+> test "$(DISK_USAGE_PERCENT_WARNING_LIMIT)" -ge "$${ROOT_DISK_USAGE}" && { \
+    echo "Disk usage not yet reaching limit (currently $${ROOT_DISK_USAGE}%)."; \
+} || { \
+    echo "Disk usage reaching limit (currently $${ROOT_DISK_USAGE}%). Attempting to alert people via email/SES."; \
+    docker run --rm -it --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" "amazon/aws-cli" \
+        ses send-email --to "$(ALERT_THESE_PEOPLE_ON_ERROR)" --from "webserver@$(DOMAIN)" --reply-to-addresses "noreply@$(DOMAIN)" --subject "Webserver Reaching Disk Usage Limit" \
+        --text "The webserver's disk usage is currently $${ROOT_DISK_USAGE}% (configured warning limit: $(DISK_USAGE_PERCENT_WARNING_LIMIT)%).\nServer Hostname: $$(hostname)\nEC2 Public IP: $$(curl "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null)"; \
+    exit 1; \
+}
+.PHONY: check-disk-usage
+.SILENT: check-disk-usage
 
 install-cron: ## Install a CRON job file to automate: renew-certs, database-backup, check-disk-usage
 install-cron: require-root
