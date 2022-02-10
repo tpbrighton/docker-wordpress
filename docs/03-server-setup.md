@@ -166,14 +166,31 @@ cd /srv
 sudo make renew-certs
 ```
 
-## Automatic Maintenance
+### Check Disk Usage
 
-Both the `database-backup` and `renew-certs` can be run automatically, run the
-following Make command to install an automated CRON job that will run both of
-these commands daily.
+Although media are not stored on the server itself, disk usage may start to fill
+up thanks to various pieces of software caching data (eg, WordPress caches
+images that get edited even though they're not stored on the server). This Make
+command checks that the disk usage is below 90% otherwise it attempts to send a
+warning email to pre-configured email addresses.
 
 ```shell
 cd /srv
+# To change which email addresses get sent a warning email, edit the
+# project-specific variables at the top of the Makefile.
+sudo make check-disk-usage
+```
+
+## Automatic Maintenance
+
+The `database-backup` and `renew-certs`, and `check-disk-usage` commands can be
+run automatically, run the following Make command to install an automated CRON
+job that will run all of these commands daily.
+
+```shell
+cd /srv
+# To change which Makefile commands get installed as CRON, edit the
+# project-specific variables at the top of the Makefile.
 sudo make install-cron
 ```
 
