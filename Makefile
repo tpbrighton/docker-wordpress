@@ -8,10 +8,31 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
   $(error This Make does not support .RECIPEPREFIX; Please use GNU Make 4.0 or later)
 endif
 .RECIPEPREFIX = >
-
 THIS_MAKEFILE_PATH:=$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 THIS_DIR:=$(shell cd $(dir $(THIS_MAKEFILE_PATH));pwd)
 THIS_MAKEFILE:=$(notdir $(THIS_MAKEFILE_PATH))
+
+# ================================ #
+# START PROJECT-SPECIFIC VARIABLES #
+# ================================ #
+
+DOMAIN := "transpridebrighton.org"
+# Database settings (the same values used for the Docker stack).
+DB_NAME := "transpridebrighton"
+DB_SERVICE := "database"
+# Name of the S3 bucket used to upload database backups to, the EC2 instance
+# should have an IAM policy granting access to this bucket (see docs folder).
+DB_S3_BUCKET := "tpbdb"
+# Email addresses should be separated by a single space.
+ALERT_THESE_PEOPLE_ON_ERROR := "zan.baldwin@transpridebrighton.org hello@zanbaldwin.com"
+DISK_USAGE_PERCENT_WARNING_LIMIT := 90
+# Makefile commands to be run automatically by CRON should be separated by a single space.
+CRON_MAKEFILE_COMMANDS := "renew-certs database-backup"
+CRON_NAME := "tpb"
+
+# ============================== #
+# END PROJECT-SPECIFIC VARIABLES #
+# ============================== #
 
 usage:
 > @grep -E '(^[a-zA-Z_-]+:\s*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.?## "}; {printf "\033[32m %-30s\033[0m%s\n", $$1, $$2}' | sed -e 's/\[32m ## /[33m/'
@@ -97,7 +118,8 @@ fetch-wordpress:
 
 build-images: ## Build Website Images ready for Deployment
 build-images: require-docker
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
+> export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
+> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
 .PHONY: build-images
 .SILENT: build-images
 
@@ -108,9 +130,9 @@ enable-https: require-root require-docker
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
 > certbot certonly --webroot \
     --webroot-path="/etc/letsencrypt/challenges" \
-    --cert-name="transpridebrighton.org" \
-    -d "transpridebrighton.org" \
-    -d "www.transpridebrighton.org"
+    --cert-name="$(DOMAIN)" \
+    -d "$(DOMAIN)" \
+    -d "www.$(DOMAIN)"
 > openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
 > docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
 .PHONY: enable-https
@@ -120,7 +142,7 @@ mock-https: ## Mocks an SSL Certificate for Development
 mock-https:
 > command -v "mkcert" >/dev/null 2>&1 || { echo >&2 "Please install MkCert for Development."; exit 1; }
 > export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
-> [ -z "$${DOMAIN}" ] && { echo >&2 "Could not determine domain from environment file."; exit 1; }
+> [ -z "$${DOMAIN:-$(DOMAIN)}" ] && { echo >&2 "Could not determine domain from either .env or Make file."; exit 1; }
 > mkdir -p "$(THIS_DIR)/build/ssl/challenges"
 > mkdir -p "$(THIS_DIR)/build/ssl/live/$${DOMAIN}"
 > (cd "$(THIS_DIR)/build/ssl"; mkcert "localhost" "$${DOMAIN}" "127.0.0.1")
@@ -128,6 +150,7 @@ mock-https:
 > cp "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/fullchain.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/chain.pem"
 > mv "$(THIS_DIR)/build/ssl/localhost+2-key.pem" "$(THIS_DIR)/build/ssl/live/$${DOMAIN}/privkey.pem"
 > openssl dhparam -out "$(THIS_DIR)/build/ssl/dhparam.pem" 1024
+> echo "Done; built mock SSL certificates for \"$${DOMAIN}\" domain."
 .PHONY: mock-https
 .SILENT: mock-https
 
@@ -148,7 +171,8 @@ password:
 deploy: ## Once everything is built, run the web server (for production).
 deploy: require-root require-docker
 > mkdir -p "/opt/mysql"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
+> export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
+> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
 .PHONY: deploy
 .SILENT: deploy
 
@@ -171,20 +195,17 @@ database-backup: require-docker
 # is installed to a non-standard location so we have to specify that.
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
 # Database backup is meant to be run by CRON and output saved to a log file. Use ANSI only (no colours).
-> export DB_NAME="transpridebrighton"
-> export DB_SERVICE="database"
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
-> export S3_BUCKET="tpbdb"
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "database" || { echo >&2 "Could not bring up Docker service \"database\"."; exit 2; }
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "$(DB_SERVICE)" || { echo >&2 "Could not bring up Docker service \"$(DB_SERVICE)\"."; exit 2; }
 > sleep 10
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysqldump -u"root" \
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
     --tz-utc    --triggers        --single-transaction \
     --skip-extended-insert \
-    "$${DB_NAME}" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
+    "$(DB_NAME)" > "/tmp/$${DB_DUMP_FILENAME}" || { echo >&2 "Docker could not export database to filesystem dump."; exit 3; }
 > export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}.bz2"
 > bzip2 --compress --best --stdout < "/tmp/$${DB_DUMP_FILENAME}" > "/tmp/$${DB_DUMP_COMPRESSED}" && { \
     rm "/tmp/$${DB_DUMP_FILENAME}" || true; \
@@ -192,7 +213,7 @@ database-backup: require-docker
     echo >&2 "Could not compress database dump, continuing to upload uncompressed file to S3."; \
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
-> docker run --rm --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
+> docker run --rm --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
     echo >&2 "Database has been backed up and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"."; \
 } || { \
     echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
@@ -210,10 +231,10 @@ restore-backup: require-docker
     export BACKUP_FILE=$$(whiptail --inputbox "Please enter the full path to the backup file that is located on the local filesystem:" 8 60 3>&1 1>&2 2>&3); \
     [ -f "$${BACKUP_FILE}" ] || { echo >&2 "$$(tput setaf 1)Backup file \"$${BACKUP_FILE}\" does not exist.$$(tput sgr0)"; exit 1; }; \
 } || { \
-    export S3_FILE=$$(whiptail --inputbox "Please enter the name/path of the file from the \"tpbdb\" S3 bucket you'd like to use." 8 60  3>&1 1>&2 2>&3); \
+    export S3_FILE=$$(whiptail --inputbox "Please enter the name/path of the file from the \"$(DB_S3_BUCKET)\" S3 bucket you'd like to use." 8 60  3>&1 1>&2 2>&3); \
     export BACKUP_FILE="$$(mktemp)"; \
-    docker run --rm -it --user="$$(id -u 2>/dev/null)" --volume "/tmp:/tmp" "amazon/aws-cli" s3 cp "s3://tpbdb/$${S3_FILE}" "$${BACKUP_FILE}" || { \
-        echo >&2 "$$(tput setaf 1)Could not download database backup file \"$${S3_FILE}\" from S3 bucket \"tpbdb\".$$(tput sgr0)"; \
+    docker run --rm -it --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" --volume "/tmp:/tmp" "amazon/aws-cli" s3 cp "s3://$(DB_S3_BUCKET)/$${S3_FILE}" "$${BACKUP_FILE}" || { \
+        echo >&2 "$$(tput setaf 1)Could not download database backup file \"$${S3_FILE}\" from S3 bucket \"$(DB_S3_BUCKET)\".$$(tput sgr0)"; \
         rm "$${BACKUP_FILE}" || true; \
         exit 2; \
     }; \
@@ -225,8 +246,8 @@ restore-backup: require-docker
     export BACKUP_FILE_IMPORT="$${BACKUP_FILE}"; \
     rm "$${TEMP_FILE}" || true; \
 }
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" -e "DROP DATABASE IF EXISTS transpridebrighton; CREATE DATABASE IF NOT EXISTS transpridebrighton;"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "database" mysql -u"root" "transpridebrighton" < "$${BACKUP_FILE_IMPORT}" || { \
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" -e "DROP DATABASE IF EXISTS \`$(DB_NAME)\`; CREATE DATABASE IF NOT EXISTS \`$(DB_NAME)\`;"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" "$(DB_NAME)" < "$${BACKUP_FILE_IMPORT}" || { \
     echo >&2 "$$(tput setaf 1)Could not import database backup file.$$(tput sgr0)"; \
     echo >&2 "$$(tput setaf 1)You now have no database! Go find a working backup quickly!$$(tput sgr0)"; \
     rm "$${TEMP_FILE}" || true; \
@@ -237,19 +258,18 @@ restore-backup: require-docker
 .PHONY: restore-backup
 .SILENT: restore-backup
 
-install-cron: ## Install a CRON job file to automate: renew-certs, database-backup
+install-cron: ## Install a CRON job file to automate: renew-certs, database-backup, check-disk-usage
 install-cron: require-root
-> export CRONTAB="/etc/cron.daily/tpb"
-> export COMMANDS="renew-certs database-backup"
+> export CRONTAB="/etc/cron.daily/$(CRON_NAME)"
 > rm -f "$${CRONTAB}" || true
 > touch "$${CRONTAB}"
 > echo "#!/bin/sh" > "$${CRONTAB}"
 > echo "mkdir -p \"$(THIS_DIR)/var/log\"" >> "$${CRONTAB}"
-> for COMMAND in $${COMMANDS}; do
+> for COMMAND in $(CRON_MAKEFILE_COMMANDS); do
 >     echo "(cd \"$(THIS_DIR)\"; date; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" \"$${COMMAND}\"; echo \"\") >>\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1" >> "$${CRONTAB}"
 > done
 > chmod +x "$${CRONTAB}"
-> echo "CRON job installed for commands \"$${COMMANDS}\" to \"$${CRONTAB}\"."
+> echo "CRON job installed for commands \"$(CRON_MAKEFILE_COMMANDS)\" to \"$${CRONTAB}\"."
 > echo "Please make sure this file will be loaded and run by the system CRON (perhaps check \"/etc/crontab\")."
 > command -v "anacron" >/dev/null 2>&1 || { \
     echo "It is recommended to install the system package \"anacron\" or the configured CRON job may not execute correctly."; \
