@@ -213,10 +213,10 @@ database-backup: require-docker
     echo >&2 "Could not compress database dump, continuing to upload uncompressed file to S3."; \
     export DB_DUMP_COMPRESSED="$${DB_DUMP_FILENAME}"; \
 }
-> docker run --rm --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
-    echo >&2 "Database has been backed up and uploaded to \"s3://$${S3_BUCKET}/$${DB_DUMP_COMPRESSED}\"."; \
+> docker run --rm --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" --volume "/tmp:/tmp:ro" amazon/aws-cli s3 cp "/tmp/$${DB_DUMP_COMPRESSED}" "s3://$(DB_S3_BUCKET)/$${DB_DUMP_COMPRESSED}" >/dev/null && { \
+    echo >&2 "Database has been backed up and uploaded to \"s3://$(DB_S3_BUCKET)/$${DB_DUMP_COMPRESSED}\"."; \
 } || { \
-    echo >&2 "Could not upload database backup to S3 bucket \"$${S3_BUCKET}\"."; \
+    echo >&2 "Could not upload database backup to S3 bucket \"$(DB_S3_BUCKET)\"."; \
     echo >&2 "Backup file is located at \"/tmp/$${DB_DUMP_COMPRESSED}\" for manual saving."; \
     exit 4; \
 }
