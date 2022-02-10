@@ -274,7 +274,7 @@ check-disk-usage: require-docker
     echo "Disk usage reaching limit (currently $${ROOT_DISK_USAGE}%). Attempting to alert people via email/SES."; \
     docker run --rm -it --user="$$(id -u 2>/dev/null)" --env "AWS_ACCESS_KEY_ID" --env "AWS_SECRET_ACCESS_KEY" "amazon/aws-cli" \
         ses send-email --to "$(ALERT_THESE_PEOPLE_ON_ERROR)" --from "webserver@$(DOMAIN)" --reply-to-addresses "noreply@$(DOMAIN)" --subject "Webserver Reaching Disk Usage Limit" \
-        --text "The webserver's disk usage is currently $${ROOT_DISK_USAGE}% (configured warning limit: $(DISK_USAGE_PERCENT_WARNING_LIMIT)%).\nServer Hostname: $$(hostname)\nEC2 Public IP: $$(curl "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null)"; \
+        --text "The webserver's disk usage is currently $${ROOT_DISK_USAGE}% (configured warning limit: $(DISK_USAGE_PERCENT_WARNING_LIMIT)%). Server: $$(hostname) ($$(curl "http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null))."; \
     exit 1; \
 }
 .PHONY: check-disk-usage
