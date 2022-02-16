@@ -117,6 +117,10 @@ files are located at `/srv/public`.
     [Offload Media](https://deliciousbrains.com/wp-offload-media/). Currently,
     the website is using a paid version of the plugin, ask Zan for details on
     how to download the plugin and its license.
+    - [`humanmade/s3-uploads`](https://github.com/humanmade/s3-uploads) is a
+      viable alternative to the _Offload Media_ plugin, should there be issues
+      in the future with the license. It is free (open-source) but harder to
+      configure. I have not tested this plugin.
 
 > The website will not have any content, consider using the `make restore-backup`
 > command to install a previous version of the website's content.
