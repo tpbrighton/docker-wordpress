@@ -59,7 +59,7 @@ require-docker:
 
 ## Server Setup
 
-console-setup: # Setup opinionated defaults for the terminal
+console-setup: # Setup opinionated defaults for the terminal (optional; not a requirement)
 console-setup:
 > ls "$$HOME/.dotfiles" >/dev/null 2>&1 && { echo "Dotfiles Repository has already been downloaded."; exit 1; } || true
 > git clone "git://github.com/zanbaldwin/dotfiles.git" "$$HOME/.dotfiles"
@@ -80,7 +80,7 @@ install-docker: require-root
 > apt update -y
 > apt-get install -y docker-ce docker-ce-cli containerd.io
 > command -v "docker-compose" >/dev/null 2>&1 && { echo ""; echo >&2 "Compose already installed. Docker installed, but Compose installation cancelled."; exit 1; } || true
-# The following command installs v2.2.3 because I can't figure out a way to detect the latest version. Check for that at:
+# The following command installs v2.2.3 because I can't figure out a way to detect the latest version (without parsing JSON). Check for that at:
 # https://github.com/docker/compose/releases/latest
 > export COMPOSE_VERSION="2.2.3"
 > curl -L "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-$$(uname -s)-$$(uname -m)" -o "/usr/local/bin/docker-compose"
@@ -257,7 +257,6 @@ restore-backup: require-docker
 > echo >&2 "$$(tput setaf 2)Database has been restored from backup, double check that it's working!$$(tput sgr0)"
 .PHONY: restore-backup
 .SILENT: restore-backup
-
 
 check-disk-usage: ## Check that the disk usage is less than 90%
 check-disk-usage: require-docker
