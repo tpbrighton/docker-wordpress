@@ -294,6 +294,12 @@ backup-plugins-and-themes:
 .PHONY: backup-plugins-and-themes
 .SILENT: backup-plugins-and-themes
 
+free: ## Display how much memory is left on the system.
+free:
+> echo "There is $$(free -m | head -n2 | tail -n1 | tr -s ' ' | cut -d' ' -f7)MB of memory available."
+.PHONY: free
+.SILENT: free
+
 install-cron: ## Install a CRON job file to automate maintenance jobs
 install-cron: require-root
 > export CRONTAB="/etc/cron.daily/$(CRON_NAME)"
