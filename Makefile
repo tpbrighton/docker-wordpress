@@ -13,7 +13,7 @@ DB_S3_BUCKET := "tpbdb"
 ALERT_THESE_PEOPLE_ON_ERROR := "zan.baldwin@transpridebrighton.org hello@zanbaldwin.com"
 DISK_USAGE_PERCENT_WARNING_LIMIT := 90
 # Makefile commands to be run automatically by CRON should be separated by a single space.
-CRON_MAKEFILE_COMMANDS := "renew-certs database-backup check-disk-usage"
+CRON_MAKEFILE_COMMANDS := "renew-certs database-backup check-disk-usage backup-plugins-and-themes"
 CRON_NAME := "tpb"
 
 # ============================== #
@@ -279,6 +279,20 @@ check-disk-usage: require-docker
 }
 .PHONY: check-disk-usage
 .SILENT: check-disk-usage
+
+backup-plugins-and-themes: ## Make a backup of WordPress Plugins & Themes to Git repository
+backup-plugins-and-themes:
+# CRON by default does not set any useful environment variables, Docker Compose
+# is installed to a non-standard location so we have to specify that.
+> export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
+> command -v "git" >/dev/null 2>&1 || { echo >&2 "Git not available on PATH."; exit 1; }
+> export WP_CONTENT_DIR="$(THIS_DIR)/public/wp-content"
+> cd "$${WP_CONTENT_DIR}"
+>  git -C "$${WP_CONTENT_DIR}" add --all \
+&& git -C "$${WP_CONTENT_DIR}" commit -m"$$(date -u '+%Y%m%dT%H%m%SZ')" --allow-empty \
+&& git -C "$${WP_CONTENT_DIR}" push
+.PHONY: backup-plugins-and-themes
+.SILENT: backup-plugins-and-themes
 
 install-cron: ## Install a CRON job file to automate: renew-certs, database-backup, check-disk-usage
 install-cron: require-root
