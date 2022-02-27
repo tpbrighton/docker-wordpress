@@ -294,7 +294,7 @@ backup-plugins-and-themes:
 .PHONY: backup-plugins-and-themes
 .SILENT: backup-plugins-and-themes
 
-install-cron: ## Install a CRON job file to automate: renew-certs, database-backup, check-disk-usage
+install-cron: ## Install a CRON job file to automate maintenance jobs
 install-cron: require-root
 > export CRONTAB="/etc/cron.daily/$(CRON_NAME)"
 > rm -f "$${CRONTAB}" || true
