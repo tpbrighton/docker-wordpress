@@ -289,7 +289,7 @@ backup-plugins-and-themes:
 > export WP_CONTENT_DIR="$(THIS_DIR)/public/wp-content"
 > cd "$${WP_CONTENT_DIR}"
 >  git -C "$${WP_CONTENT_DIR}" add --all \
-&& git -C "$${WP_CONTENT_DIR}" commit -m"$$(date -u '+%Y%m%dT%H%m%SZ')" --allow-empty \
+&& git -C "$${WP_CONTENT_DIR}" commit -m"$$(date -u '+%Y%m%dT%H%m%SZ')" \
 && git -C "$${WP_CONTENT_DIR}" push
 .PHONY: backup-plugins-and-themes
 .SILENT: backup-plugins-and-themes
