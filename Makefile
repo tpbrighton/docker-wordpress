@@ -296,7 +296,7 @@ backup-plugins-and-themes:
 
 free: ## Display how much memory is left on the system.
 free:
-> echo "There is $$(free -m | head -n2 | tail -n1 | tr -s ' ' | cut -d' ' -f7)MB of memory available."
+> echo "There is $$(free -m | head -n2 | tail -n1 | tr -s ' ' | cut -d' ' -f7) MB of memory available."
 .PHONY: free
 .SILENT: free
 
