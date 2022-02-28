@@ -78,8 +78,6 @@ sure _Allow write access_ is **enabled**).
 
 ### Setup Website Project on Server
 
-Back on the server:
-
 > If a command asks you to retry as the root user or with the sudo command, try
 > the command again but add the word `sudo` at the beginning.
 
@@ -228,11 +226,29 @@ cd /srv
 sudo make check-disk-usage
 ```
 
+### Backup Themes and Plugins
+
+Records any changes or additions to themes and plugins (eg, upgrades), and
+uploads those changes to the [`tpbrighton/wordpress-content` GitHub
+repository](https://github.com/tpbrighton/wordpress-content).
+
+**Note:** this command is _expected_ to fail if there have not been any changes
+since the last backup.
+
+```shell
+cd /srv
+# This assumes that the `tpbrighton/wordpress-content` GitHub repository has
+# been cloned locally to `/srv/public/wp-content`, and that an SSH keypair has
+# been generated and added as a writable Deploy key for that GitHub repository.
+make backup-plugins-and-themes
+```
+
 ## Automatic Maintenance
 
-The `database-backup` and `renew-certs`, and `check-disk-usage` commands can be
-run automatically, run the following Make command to install an automated CRON
-job that will run all of these commands daily.
+The `database-backup`, `renew-certs`, `check-disk-usage`, and
+`backup-plugins-and-themes` commands can be run automatically, run the following
+Make command to install an automated CRON job that will run all of these
+commands daily.
 
 ```shell
 cd /srv
