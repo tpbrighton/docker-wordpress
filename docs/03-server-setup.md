@@ -13,16 +13,16 @@ You will need:
 
 ```shell
 ssh "ubuntu@<IP_ADDRESS>" -i "<KEY_FILE>"
-```
 
-For example, in my case this would be:
-
-```shell
+# For example, in my case this would be:
 ssh "ubuntu@35.177.199.22" -i "~/.ssh/AWSLondonDefault.pem"
 ```
 
 > Once the EC2 instance (server) is set up, you can add additional (eg, your
 > own) public key to `~/.ssh/authorized_keys`
+ 
+All the instructions in the rest of this document are intended to be performed
+_on the webserver_. You should remain logged in via SSH when executing commands.
 
 ## Required Software
 
@@ -57,11 +57,12 @@ sudo timedatectl set-timezone 'Europe/London'
 
 ### SSH Keypair
 
-The repository that holds a backup of the themes and plugins is private, so we
-must be able to identify the server as trusted by generating a keypair. The
-following command will create an SSH keypair of type ED25519 (modern and secure)
-in the default location, without a passphrase (so it can be used automatically
-without user input), with a comment describing its usage.
+The repository that holds a backup of the themes and plugins is private (because
+it contains commercial code that we have licensed), so we must be able to
+identify the server as trusted by generating a keypair. The following command
+will create an SSH keypair of type ED25519 (modern and secure) in the default
+location, without a passphrase (so it can be used automatically without user
+input), with a comment describing its usage.
 
 ```shell
 ssh-keygen -q -t "ed25519" -f "${HOME}/.ssh/id_ed25519" -N"" -C "EC2 Production Server Backup Key"
@@ -71,6 +72,9 @@ Copy the contents of the newly-created file `~/.ssh/id_ed25519.pub` and add it
 as a [new Deploy Key for the `wordpress-content` GitHub
 project](https://github.com/tpbrighton/wordpress-content/settings/keys/new) (make
 sure _Allow write access_ is **enabled**).
+
+> **Note:** the `cat` command will print out the contents of a file (eg,
+> `cat ~/.ssh/id_ed25519.pub`).
 
 ### Setup Website Project on Server
 
