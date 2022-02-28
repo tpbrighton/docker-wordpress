@@ -55,64 +55,20 @@ sudo timedatectl set-timezone 'Europe/London'
 
 ## Installing the (Website) Project
 
-### SSH Keypairs
+### SSH Keypair
 
-Some repositories (such as the WordPress theme) are private, so we must be able
-to identify the server as trusted. GitHub has a restriction where we can only
-use one keypair per repository, the following is a kinda hacky way where we can
-specify which keypair to use for which repository.
-
-#### Deploy Key
-
-First, we need a keypair for deploying the `docker-wordpress` repository, which
-contains everything needed to get the server software up and running. First,
-create the keypair (this will create two files: `~/.ssh/deploy` and
-`~/.ssh/deploy.pub`).
+The repository that holds a backup of the themes and plugins is private, so we
+must be able to identify the server as trusted by generating a keypair. The
+following command will create an SSH keypair of type ED25519 (modern and secure)
+in the default location, without a passphrase (so it can be used automatically
+without user input), with a comment describing its usage.
 
 ```shell
-# Create an SSH keypair called "deploy" in the default SSH directory, of type
-# ED25519 (modern and secure), with no password (so it can be used automatically
-# without a user typing in the password), with a comment describing its usage.
-ssh-keygen -q -t "ed25519" -f "${HOME}/.ssh/deploy" -N"" -C "EC2 Production Server Deploy Key"
+ssh-keygen -q -t "ed25519" -f "${HOME}/.ssh/id_ed25519" -N"" -C "EC2 Production Server Backup Key"
 ```
 
-Add the following to the bottom of `~/.ssh/config` (create the file if it does
-not exist).
-
-```
-Host github-tpb-deploy
-    Hostname github.com
-    IdentityFile=/home/ubuntu/.ssh/deploy.pub
-```
-
-And finally, copy the contents of `~/.ssh/deploy.pub` and add it as a [new
-Deploy Key for the `docker-wordpress` GitHub
-project](https://github.com/tpbrighton/docker-wordpress/settings/keys/new) (leave
-the _Allow write access_ tick box **unchecked**).
-
-#### Backup Key
-
-First, we need a keypair for backing up plugins and themes to the
-`wordpress-content` repository. First, create the keypair (this will create two
-files: `~/.ssh/backup` and `~/.ssh/backup.pub`).
-
-```shell
-# Create an SSH keypair called "backup" in the default SSH directory, of type
-# ED25519 (modern and secure), with no password (so it can be used automatically
-# without a user typing in the password), with a comment describing its usage.
-ssh-keygen -q -t "ed25519" -f "${HOME}/.ssh/backup" -N"" -C "EC2 Production Server Backup Key"
-```
-
-Add the following to the bottom of `~/.ssh/config`.
-
-```
-Host github-tpb-backup
-    Hostname github.com
-    IdentityFile=/home/ubuntu/.ssh/backup.pub
-```
-
-And finally, copy the contents of `~/.ssh/backup.pub` and add it as a [new
-Deploy Key for the `wordpress-content` GitHub
+Copy the contents of the newly-created file `~/.ssh/id_ed25519.pub` and add it
+as a [new Deploy Key for the `wordpress-content` GitHub
 project](https://github.com/tpbrighton/wordpress-content/settings/keys/new) (make
 sure _Allow write access_ is **enabled**).
 
@@ -127,10 +83,7 @@ Back on the server:
    `/srv` because this server will be serving a website: `sudo mkdir /srv`
 2. Make sure that the current user owns it: `sudo chown -R "$(whoami):$(whoami)" /srv`
 3. Clone the project from GitHub into the directory we just made:
-   `git clone "git@github-tpb-deploy:tpbrighton/docker-wordpress.git" /srv`
-   - Here we are specifying the hostname to be `github-tpb-deploy` which
-     according to the config we made above means "fetch from `github.com` but
-     use the deploy keypair for authentication".
+   `git clone "git://github.com/tpbrighton/docker-wordpress.git" /srv`
 4. The rest of the instructions have been scripted into the project, so change
    into the project directory: `cd /srv`
 5. Install Docker (which is what will "contain" the website software that runs
@@ -173,10 +126,7 @@ that should be `/srv/public/wp-content`.
 # The following is a work-around to clone a Git repository into a non-empty
 # directory without affecting existing content.
 
-# Here we are specifying the hostname to be "github-tpb-backup" which according
-# to the config we made above means "fetch from github.com but use the backup
-# keypair for authentication".
-git clone --no-checkout --no-hardlinks "git@github-tpb-backup:tpbrighton/wordpress-content.git" "/tmp/wordpress-content"
+git clone --no-checkout --no-hardlinks "git@github.com:tpbrighton/wordpress-content.git" "/tmp/wordpress-content"
 mv "/tmp/wordpress-content/.git" "/srv/public/wp-content/.git"
 rm -rf "/tmp/wordpress-content"
 git -C "/srv/public/wp-content" reset --hard HEAD
