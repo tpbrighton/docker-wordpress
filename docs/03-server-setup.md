@@ -73,6 +73,11 @@ as a [new Deploy Key for the `wordpress-content` GitHub
 project](https://github.com/tpbrighton/wordpress-content/settings/keys/new) (make
 sure _Allow write access_ is **enabled**).
 
+In order for automated backups of themes and plugins, as the root user (add
+`sudo` to commands), copy the file `~/.ssh/id_ed25519` (eg,
+`/home/ubuntu/.ssh/id_ed25519`) to `/root/.ssh/id_ed25519` so that the root user
+via CRON can also use the SSH keypair.
+
 > **Note:** the `cat` command will print out the contents of a file (eg,
 > `cat ~/.ssh/id_ed25519.pub`).
 
