@@ -58,8 +58,7 @@ services:
         build:
             context: './build/docker/database'
             args:
-                MARIADB_VERSION: '10.7'
-                MYSQL_VERSION: '8.0.29'
+                MARIADB_VERSION: '10.11'
         restart: 'unless-stopped'
         environment:
             MYSQL_ROOT_PASSWORD_FILE: '/run/secrets/dbpass'
