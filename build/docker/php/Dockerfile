@@ -6,7 +6,7 @@ MAINTAINER Zan Baldwin "hello@zanbaldwin.com"
 # Alpine uses musl instead of glibc, so it's best not to use the dynamically-linked version.
 # See https://github.com/krallin/tini/issues/8#issuecomment-146135930
 RUN    apk add --no-cache --virtual .tini-build-deps cmake gcc git libc-dev make \
-    && git clone 'git://github.com/krallin/tini.git' '/tmp/tini' \
+    && git clone 'https://github.com/krallin/tini.git' '/tmp/tini' \
     && ( \
         cd '/tmp/tini'; \
         git checkout "$(git describe --tags)"; \
