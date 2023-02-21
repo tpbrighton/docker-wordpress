@@ -53,7 +53,7 @@ require-root:
 require-docker:
 > command -v "docker" >/dev/null 2>&1 || { echo >&2 "Docker client required for command not found (PATH: \"$${PATH}\")."; exit 1; }
 > docker info >/dev/null 2>&1 || { echo >&2 "Docker daemon unavailable. Perhaps retry as root/sudo?"; exit 1; }
-> command -v "docker-compose" >/dev/null 2>&1 || { echo >&2 "Docker Compose required for command not found (PATH: \"$${PATH}\")."; exit 1; }
+> docker compose >/dev/null 2>&1 || { echo >&2 "Docker Compose required for command not found (PATH: \"$${PATH}\")."; exit 1; }
 .PHONY: require-docker
 .SILENT: require-docker
 
@@ -119,22 +119,22 @@ fetch-wordpress:
 build-images: ## Build Website Images ready for Deployment
 build-images: require-docker
 > export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
-> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker-compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
+> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker compose -f "$(THIS_DIR)/docker-compose.yaml" build --pull
 .PHONY: build-images
 .SILENT: build-images
 
 enable-https: ## Installs an SSL Certificate for the Domain
 enable-https: require-root require-docker
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" down
 > mkdir -p "/etc/letsencrypt/challenges"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
 > certbot certonly --webroot \
     --webroot-path="/etc/letsencrypt/challenges" \
     --cert-name="$(DOMAIN)" \
     -d "$(DOMAIN)" \
     -d "www.$(DOMAIN)"
 > openssl dhparam -out "/etc/letsencrypt/dhparam.pem" 4096
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" down
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" down
 .PHONY: enable-https
 .SILENT: enable-https
 
@@ -172,7 +172,7 @@ deploy: ## Once everything is built, run the web server (for production).
 deploy: require-root require-docker
 > mkdir -p "/opt/mysql"
 > export $$(echo "$$(cat "$(THIS_DIR)/.env" | sed 's/#.*//g'| xargs)")
-> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
+> DOMAIN="$${DOMAIN:-$(DOMAIN)}" docker compose -f "$(THIS_DIR)/docker-compose.yaml" up -d
 .PHONY: deploy
 .SILENT: deploy
 
@@ -185,7 +185,7 @@ renew-certs: require-root require-docker
 > export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
 > certbot renew
 # Nginx has to be restarted in order to use the new certificates.
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" restart server
 .PHONY: renew-certs
 .SILENT: renew-certs
 
@@ -197,9 +197,9 @@ database-backup: require-docker
 # Database backup is meant to be run by CRON and output saved to a log file. Use ANSI only (no colours).
 > export DB_DUMP_FILENAME="tpb-database-$$(date -u '+%Y%m%dT%H%m%SZ').sql"
 > command -v bzip2 >/dev/null 2>&1 || { echo >&2 "Command \"bzip2\" not found in \$$PATH. Make sure CRON has the correct environment variables set."; exit 1; }
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "$(DB_SERVICE)" || { echo >&2 "Could not bring up Docker service \"$(DB_SERVICE)\"."; exit 2; }
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" up -d "$(DB_SERVICE)" || { echo >&2 "Could not bring up Docker service \"$(DB_SERVICE)\"."; exit 2; }
 > sleep 10
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysqldump -u"root" \
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysqldump -u"root" \
     --add-locks --add-drop-table  --add-drop-trigger \
     --comments  --disable-keys    --complete-insert \
     --hex-blob  --insert-ignore   --quote-names \
@@ -246,8 +246,8 @@ restore-backup: require-docker
     export BACKUP_FILE_IMPORT="$${BACKUP_FILE}"; \
     rm "$${TEMP_FILE}" || true; \
 }
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" -e "DROP DATABASE IF EXISTS \`$(DB_NAME)\`; CREATE DATABASE IF NOT EXISTS \`$(DB_NAME)\`;"
-> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" "$(DB_NAME)" < "$${BACKUP_FILE_IMPORT}" || { \
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" exec -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" -e "DROP DATABASE IF EXISTS \`$(DB_NAME)\`; CREATE DATABASE IF NOT EXISTS \`$(DB_NAME)\`;"
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" exec -T -e "MYSQL_PWD=$$(cat '$(THIS_DIR)/build/.secrets/dbpass' | tr -d '\n\r')" "$(DB_SERVICE)" mysql -u"root" "$(DB_NAME)" < "$${BACKUP_FILE_IMPORT}" || { \
     echo >&2 "$$(tput setaf 1)Could not import database backup file.$$(tput sgr0)"; \
     echo >&2 "$$(tput setaf 1)You now have no database! Go find a working backup quickly!$$(tput sgr0)"; \
     rm "$${TEMP_FILE}" || true; \
