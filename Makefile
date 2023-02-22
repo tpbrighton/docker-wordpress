@@ -127,7 +127,7 @@ enable-https: ## Installs an SSL Certificate for the Domain
 enable-https: require-root require-docker
 > docker compose -f "$(THIS_DIR)/docker-compose.yaml" down
 > mkdir -p "/etc/letsencrypt/challenges"
-> docker compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" server nginx -c "/etc/nginx/acme.conf"
+> docker compose -f "$(THIS_DIR)/docker-compose.yaml" run -d --name "acme" --service-ports server nginx -c "/etc/nginx/acme.conf"
 > certbot certonly --webroot \
     --webroot-path="/etc/letsencrypt/challenges" \
     --cert-name="$(DOMAIN)" \
