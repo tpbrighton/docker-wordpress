@@ -72,6 +72,20 @@ services:
             -   'dbpass'
         logging: *default-logging
 
+    cache:
+        image: 'transpridebrighton/cache'
+        build:
+            context: './build/docker/cache'
+            args:
+                REDIS_VERSION: '7.0'
+        restart: 'unless-stopped'
+        volumes:
+            -   type: 'bind'
+                source: '/opt/redis'
+                target: '/data'
+                read_only: false
+        logging: *default-logging
+
 secrets:
     dbpass:
         file: './build/.secrets/dbpass'

@@ -22,6 +22,17 @@ services:
                 target: '/var/lib/mysql'
                 read_only: false
 
+    cache:
+        volumes:
+            # Use a volume for data during development instead of messing with
+            # system directories.
+            -   type: 'volume'
+                source: 'cache'
+                target: '/data'
+                read_only: false
+
 volumes:
     database:
+        driver: 'local'
+    cache:
         driver: 'local'
