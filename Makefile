@@ -293,6 +293,21 @@ backup-plugins-and-themes:
 .PHONY: backup-plugins-and-themes
 .SILENT: backup-plugins-and-themes
 
+wordpress-cron: ## Run through the jobs stored in the WordPress CRON queue
+wordpress-cron: require-docker
+> export PATH="$${PATH:-"/bin:/usr/bin"}:/usr/local/bin"
+> docker-compose -f "$(THIS_DIR)/docker-compose.yaml" run --rm "php" php "/srv/public/wp-cron.php"
+.PHONY: wordpress-cron
+.SILENT: wordpress-cron
+
+install-wordpress-cron: ## Install the WordPress CRON job to be run every 5 minutes
+install-wordpress-cron: require-root
+> export CRONTAB="/etc/cron.d/$(CRON_NAME)"
+> export EVERY_FIVE_MINUTES="*/5 * * * *"
+> echo "$${EVERY_FIVE_MINUTES} (cd \"$(THIS_DIR)\"; date; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" \"wordpress-cron\"; echo \"\") >>\"$(THIS_DIR)/var/log/cron-$(CRON_NAME)-wordpress.log\" 2>&1" >> "$${CRONTAB}"
+.PHONY: wordpress-cron
+.SILENT: wordpress-cron
+
 free: ## Display how much memory is left on the system.
 free:
 > echo "There is $$(free -m | head -n2 | tail -n1 | tr -s ' ' | cut -d' ' -f7) MB of memory available."
@@ -307,7 +322,7 @@ install-cron: require-root
 > echo "#!/bin/sh" > "$${CRONTAB}"
 > echo "mkdir -p \"$(THIS_DIR)/var/log\"" >> "$${CRONTAB}"
 > for COMMAND in "$(CRON_MAKEFILE_COMMANDS)"; do
->     echo "(cd \"$(THIS_DIR)\"; date; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" \"$${COMMAND}\"; echo \"\") >>\"$(THIS_DIR)/var/log/cron-tpb-$${COMMAND}.log\" 2>&1" >> "$${CRONTAB}"
+>     echo "(cd \"$(THIS_DIR)\"; date; make -f \"$(THIS_DIR)/$(THIS_MAKEFILE)\" \"$${COMMAND}\"; echo \"\") >>\"$(THIS_DIR)/var/log/cron-$(CRON_NAME)-$${COMMAND}.log\" 2>&1" >> "$${CRONTAB}"
 > done
 > chmod +x "$${CRONTAB}"
 > echo "CRON job installed for commands \"$(CRON_MAKEFILE_COMMANDS)\" to \"$${CRONTAB}\"."
