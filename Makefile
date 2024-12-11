@@ -10,7 +10,7 @@ DB_SERVICE := "database"
 # should have an IAM policy granting access to this bucket (see docs folder).
 DB_S3_BUCKET := "tpbdb"
 # Email addresses should be separated by a single space.
-ALERT_THESE_PEOPLE_ON_ERROR := "zan.baldwin@transpridebrighton.org hello@zanbaldwin.com"
+ALERT_THESE_PEOPLE_ON_ERROR := "theresa@ecogeek.co"
 DISK_USAGE_PERCENT_WARNING_LIMIT := 90
 # Makefile commands to be run automatically by CRON should be separated by a single space.
 CRON_MAKEFILE_COMMANDS := "renew-certs database-backup check-disk-usage backup-plugins-and-themes"
