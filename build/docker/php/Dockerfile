@@ -23,7 +23,7 @@ ENTRYPOINT [ "/tini", "--" ]
 RUN    apk add --no-cache --upgrade --virtual '.extension-build-deps' \
         giflib-dev gmp-dev icu-dev libffi-dev libjpeg-turbo-dev libpng-dev libwebp-dev libxml2-dev libzip-dev \
     && apk add --no-cache --upgrade --virtual '.extension-runtime-deps' \
-        giflib gmp icu libffi libjpeg-turbo libpng libwebp libxml2 libzip \
+        giflib gmp icu libffi libjpeg-turbo libgomp libpng libwebp libxml2 libzip \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install \
         exif ffi gd gmp intl mysqli opcache pcntl pdo_mysql sockets xml zip \
