@@ -1,4 +1,4 @@
-ARG PHP_VERSION="7.4-fpm-alpine3.13"
+ARG PHP_VERSION="8.2-fpm-alpine"
 FROM "php:${PHP_VERSION}" AS development
 MAINTAINER Zan Baldwin "hello@zanbaldwin.com"
 
